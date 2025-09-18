@@ -331,16 +331,20 @@ export default function Dashboard() {
                       <CardTitle className="text-cyan-400">Open Betting Events</CardTitle>
                       <CardDescription className="text-gray-400">Place a bet using your credits</CardDescription>
                     </div>
-                    {user?.role === "admin" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => navigate("/admin")}
-                        className="border-pink-500 text-pink-500 hover:bg-pink-500/10"
-                      >
-                        + Add Bet Event
-                      </Button>
-                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        if (user?.role === "admin") {
+                          navigate("/admin");
+                        } else {
+                          toast.error("Only admins can create betting events");
+                        }
+                      }}
+                      className="border-pink-500 text-pink-500 hover:bg-pink-500/10"
+                    >
+                      + Add Bet Event
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
