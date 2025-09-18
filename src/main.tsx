@@ -16,7 +16,7 @@ import NotFound from "./pages/NotFound.tsx";
 import "./types/global.d.ts";
 import { useAuth } from "./hooks/use-auth.ts";
 import { useQuery } from "convex/react";
-import { api } from "./convex/_generated/api.ts";
+import { api } from "@/convex/_generated/api";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
