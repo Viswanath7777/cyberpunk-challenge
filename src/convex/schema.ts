@@ -110,7 +110,8 @@ const schema = defineSchema(
     bettingEvents: defineTable({
       title: v.string(),
       description: v.optional(v.string()),
-      options: v.array(v.string()),
+      // Change options to include fixed odds per option
+      options: v.array(v.object({ label: v.string(), odds: v.number() })),
       status: betEventStatusValidator,
       createdBy: v.id("users"),
       closesAt: v.optional(v.number()),

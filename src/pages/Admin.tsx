@@ -38,7 +38,7 @@ export default function Admin() {
   const [betEvent, setBetEvent] = useState({
     title: "",
     description: "",
-    optionsText: "", // comma-separated
+    optionsText: "", // format: "Alice:2.5, Bob:1.8"
     durationHours: 24,
   });
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
@@ -103,21 +103,33 @@ export default function Admin() {
   };
 
   const handleCreateBetEvent = async () => {
-    const options = betEvent.optionsText
+    const raw = betEvent.optionsText
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
+
+    const options = raw.map((entry) => {
+      const [labelPart, oddsPart] = entry.split(":").map((s) => s.trim());
+      const odds = Number(oddsPart);
+      return { label: labelPart, odds };
+    });
+
     if (!betEvent.title || options.length < 2) {
-      toast.error("Enter a title and at least two options (comma-separated)");
+      toast.error("Enter a title and at least two options (e.g., Alice:2.5, Bob:1.8)");
       return;
     }
+    if (options.some((o) => !o.label || !(o.odds > 0))) {
+      toast.error("Each option must include a label and odds > 0 (e.g., Alice:2.5)");
+      return;
+    }
+
     try {
       await createBetEvent({
         title: betEvent.title,
         description: betEvent.description || undefined,
         options,
         durationHours: betEvent.durationHours,
-      });
+      } as any);
       toast.success("Betting event created");
       setBetEvent({ title: "", description: "", optionsText: "", durationHours: 24 });
     } catch (e) {
@@ -322,12 +334,12 @@ export default function Admin() {
                 />
               </div>
               <div>
-                <Label htmlFor="betOptions" className="text-cyan-400">Options (comma-separated)</Label>
+                <Label htmlFor="betOptions" className="text-cyan-400">Options (label:odds, comma-separated)</Label>
                 <Input
                   id="betOptions"
                   value={betEvent.optionsText}
                   onChange={(e) => setBetEvent((p) => ({ ...p, optionsText: e.target.value }))}
-                  placeholder="Alice, Bob, Charlie"
+                  placeholder="Alice:2.5, Bob:1.8"
                   className="bg-gray-800 border-gray-600 text-white"
                 />
               </div>
@@ -383,15 +395,15 @@ export default function Admin() {
                   </div>
                   {evt.status !== "resolved" && (
                     <div className="flex flex-wrap gap-2">
-                      {evt.options?.map((opt: string) => (
+                      {evt.options?.map((opt: any) => (
                         <Button
-                          key={opt}
+                          key={opt.label}
                           size="sm"
-                          variant={resolutions[evt._id] === opt ? "default" : "outline"}
-                          className={resolutions[evt._id] === opt ? "bg-cyan-400 text-black" : "border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"}
-                          onClick={() => setResolutions((p) => ({ ...p, [evt._id]: opt }))}
+                          variant={resolutions[evt._id] === opt.label ? "default" : "outline"}
+                          className={resolutions[evt._id] === opt.label ? "bg-cyan-400 text-black" : "border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"}
+                          onClick={() => setResolutions((p) => ({ ...p, [evt._id]: opt.label }))}
                         >
-                          {opt}
+                          {opt.label} ({opt.odds}x)
                         </Button>
                       ))}
                     </div>

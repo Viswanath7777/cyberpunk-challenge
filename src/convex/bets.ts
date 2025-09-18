@@ -8,7 +8,8 @@ export const createEvent = mutation({
   args: {
     title: v.string(),
     description: v.optional(v.string()),
-    options: v.array(v.string()),
+    // Change options to include odds
+    options: v.array(v.object({ label: v.string(), odds: v.number() })),
     durationHours: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
@@ -20,6 +21,13 @@ export const createEvent = mutation({
     if (args.options.length < 2) {
       throw new Error("Provide at least two options");
     }
+    // Validate odds > 0
+    for (const opt of args.options) {
+      if (!(opt.odds > 0)) {
+        throw new Error(`Invalid odds for "${opt.label}". Must be > 0`);
+      }
+    }
+
     const closesAt = args.durationHours
       ? Date.now() + args.durationHours * 60 * 60 * 1000
       : undefined;
@@ -64,7 +72,7 @@ export const getMyBets = query({
 export const placeBet = mutation({
   args: {
     eventId: v.id("bettingEvents"),
-    option: v.string(),
+    option: v.string(), // label
     amount: v.number(),
   },
   handler: async (ctx, args) => {
@@ -84,7 +92,8 @@ export const placeBet = mutation({
     if (event.closesAt && Date.now() > event.closesAt) {
       throw new Error("Event betting period has ended");
     }
-    if (!event.options.includes(args.option)) {
+    const opt = event.options.find((o) => o.label === args.option);
+    if (!opt) {
       throw new Error("Invalid option");
     }
 
@@ -112,7 +121,7 @@ export const placeBet = mutation({
     const betId = await ctx.db.insert("bets", {
       eventId: args.eventId,
       userId: user._id,
-      option: args.option,
+      option: args.option, // store label
       amount: args.amount,
       placedAt: Date.now(),
     });
@@ -137,11 +146,11 @@ export const closeEvent = mutation({
   },
 });
 
-// Admin: Resolve an event, pay out winners proportionally
+// Admin: Resolve an event, pay out winners by fixed odds
 export const resolveEvent = mutation({
   args: {
     eventId: v.id("bettingEvents"),
-    winningOption: v.string(),
+    winningOption: v.string(), // label
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -150,34 +159,29 @@ export const resolveEvent = mutation({
     }
     const event = await ctx.db.get(args.eventId);
     if (!event) throw new Error("Event not found");
-    if (!event.options.includes(args.winningOption)) {
+    const winning = event.options.find((o) => o.label === args.winningOption);
+    if (!winning) {
       throw new Error("Invalid winning option");
     }
     if (event.status === BET_EVENT_STATUS.RESOLVED) {
       return { success: true };
     }
 
-    // Collect all bets for this event
+    // Collect all winning bets for this event
     const allBets = await ctx.db
       .query("bets")
       .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
       .collect();
 
-    const totalPool = allBets.reduce((s, b) => s + (b.amount || 0), 0);
     const winners = allBets.filter((b) => b.option === args.winningOption);
-    const winnersPool = winners.reduce((s, b) => s + (b.amount || 0), 0);
 
-    // If there are winners, distribute proportionally
-    if (winners.length > 0 && winnersPool > 0 && totalPool > 0) {
-      const ratio = totalPool / winnersPool;
-      // Pay out each winner
-      for (const bet of winners) {
-        const u = await ctx.db.get(bet.userId);
-        if (!u) continue;
-        const payout = Math.floor(bet.amount * ratio); // floor to keep it simple
-        const currentCredits = u.credits ?? 1000;
-        await ctx.db.patch(u._id, { credits: currentCredits + payout });
-      }
+    // Payout = amount * odds (floored)
+    for (const bet of winners) {
+      const u = await ctx.db.get(bet.userId);
+      if (!u) continue;
+      const payout = Math.floor(bet.amount * winning.odds);
+      const currentCredits = u.credits ?? 1000;
+      await ctx.db.patch(u._id, { credits: currentCredits + payout });
     }
 
     // Mark event resolved
@@ -186,7 +190,10 @@ export const resolveEvent = mutation({
       resolvedOption: args.winningOption,
     });
 
-    return { success: true, totalPool, winnersPool, winners: winners.length };
+    return {
+      success: true,
+      winners: winners.length,
+    };
   },
 });
 

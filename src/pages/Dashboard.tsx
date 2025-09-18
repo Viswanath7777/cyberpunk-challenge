@@ -326,8 +326,22 @@ export default function Dashboard() {
               {/* Open Events */}
               <Card className="bg-gray-900/50 border-cyan-400/30">
                 <CardHeader>
-                  <CardTitle className="text-cyan-400">Open Betting Events</CardTitle>
-                  <CardDescription className="text-gray-400">Place a bet using your credits</CardDescription>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-cyan-400">Open Betting Events</CardTitle>
+                      <CardDescription className="text-gray-400">Place a bet using your credits</CardDescription>
+                    </div>
+                    {user?.role === "admin" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigate("/admin")}
+                        className="border-pink-500 text-pink-500 hover:bg-pink-500/10"
+                      >
+                        + Add Bet Event
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {(openEvents || []).map((evt) => {
@@ -346,20 +360,20 @@ export default function Dashboard() {
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                          {evt.options?.map((opt: string) => (
+                          {evt.options?.map((opt: any) => (
                             <Button
-                              key={opt}
+                              key={opt.label}
                               size="sm"
-                              variant={sel.option === opt ? "default" : "outline"}
-                              className={sel.option === opt ? "bg-cyan-400 text-black" : "border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"}
+                              variant={sel.option === opt.label ? "default" : "outline"}
+                              className={sel.option === opt.label ? "bg-cyan-400 text-black" : "border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"}
                               onClick={() =>
                                 setBetSelections((prev) => ({
                                   ...prev,
-                                  [evt._id]: { option: opt, amount: sel.amount },
+                                  [evt._id]: { option: opt.label, amount: sel.amount },
                                 }))
                               }
                             >
-                              {opt}
+                              {opt.label} ({opt.odds}x)
                             </Button>
                           ))}
                         </div>
