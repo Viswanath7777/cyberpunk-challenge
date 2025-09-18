@@ -16,6 +16,32 @@ export const roleValidator = v.union(
 );
 export type Role = Infer<typeof roleValidator>;
 
+// Challenge status enum
+export const CHALLENGE_STATUS = {
+  ACTIVE: "active",
+  COMPLETED: "completed",
+  EXPIRED: "expired",
+} as const;
+
+export const challengeStatusValidator = v.union(
+  v.literal(CHALLENGE_STATUS.ACTIVE),
+  v.literal(CHALLENGE_STATUS.COMPLETED),
+  v.literal(CHALLENGE_STATUS.EXPIRED),
+);
+
+// Submission status enum
+export const SUBMISSION_STATUS = {
+  PENDING: "pending",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+} as const;
+
+export const submissionStatusValidator = v.union(
+  v.literal(SUBMISSION_STATUS.PENDING),
+  v.literal(SUBMISSION_STATUS.APPROVED),
+  v.literal(SUBMISSION_STATUS.REJECTED),
+);
+
 const schema = defineSchema(
   {
     // default auth tables using convex auth.
@@ -30,14 +56,42 @@ const schema = defineSchema(
       isAnonymous: v.optional(v.boolean()), // is the user anonymous. do not remove
 
       role: v.optional(roleValidator), // role of the user. do not remove
+      
+      // Character data
+      characterName: v.optional(v.string()),
+      level: v.optional(v.number()),
+      xp: v.optional(v.number()),
+      weeklyXp: v.optional(v.number()), // XP earned this week for badges
+      badges: v.optional(v.array(v.string())), // Array of badge names
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
-    // add other tables here
+    // Challenges table
+    challenges: defineTable({
+      title: v.string(),
+      description: v.string(),
+      xpReward: v.number(),
+      type: v.union(v.literal("daily"), v.literal("weekly")),
+      status: challengeStatusValidator,
+      createdBy: v.id("users"), // Admin who created it
+      expiresAt: v.optional(v.number()), // Timestamp when challenge expires
+    }).index("by_status", ["status"])
+      .index("by_type", ["type"])
+      .index("by_created_by", ["createdBy"]),
 
-    // tableName: defineTable({
-    //   ...
-    //   // table fields
-    // }).index("by_field", ["field"])
+    // Challenge submissions table
+    submissions: defineTable({
+      challengeId: v.id("challenges"),
+      userId: v.id("users"),
+      proofText: v.optional(v.string()),
+      proofImageUrl: v.optional(v.string()),
+      status: submissionStatusValidator,
+      submittedAt: v.number(),
+      reviewedAt: v.optional(v.number()),
+      reviewedBy: v.optional(v.id("users")), // Admin who reviewed
+    }).index("by_challenge", ["challengeId"])
+      .index("by_user", ["userId"])
+      .index("by_status", ["status"])
+      .index("by_challenge_and_user", ["challengeId", "userId"]),
   },
   {
     schemaValidation: false,

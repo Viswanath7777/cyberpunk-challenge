@@ -2,6 +2,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { InstrumentationProvider } from "@/instrumentation.tsx";
 import AuthPage from "@/pages/Auth.tsx";
+import Dashboard from "@/pages/Dashboard.tsx";
+import Admin from "@/pages/Admin.tsx";
+import CharacterSetup from "@/pages/CharacterSetup.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import { StrictMode, useEffect } from "react";
@@ -11,10 +14,11 @@ import "./index.css";
 import Landing from "./pages/Landing.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import "./types/global.d.ts";
+import { useAuth } from "./hooks/use-auth.ts";
+import { useQuery } from "convex/react";
+import { api } from "./convex/_generated/api.ts";
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
-
-
 
 function RouteSyncer() {
   const location = useLocation();
@@ -39,6 +43,29 @@ function RouteSyncer() {
   return null;
 }
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { isLoading, isAuthenticated } = useAuth();
+  const character = useQuery(api.characters.getCharacter);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-cyan-400 font-mono">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage redirectAfterAuth="/dashboard" />;
+  }
+
+  // If authenticated but no character, redirect to character setup
+  if (character === null || !character?.characterName) {
+    return <CharacterSetup />;
+  }
+
+  return <>{children}</>;
+}
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -49,7 +76,22 @@ createRoot(document.getElementById("root")!).render(
           <RouteSyncer />
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<AuthPage redirectAfterAuth="/" />} /> {/* TODO: change redirect after auth to correct page */}
+            <Route path="/auth" element={<AuthPage redirectAfterAuth="/dashboard" />} />
+            <Route path="/character-setup" element={
+              <ProtectedRoute>
+                <CharacterSetup />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <Admin />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
