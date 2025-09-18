@@ -29,6 +29,12 @@ export default function Dashboard() {
   // Betting queries/mutations
   const openEvents = useQuery(api.bets.listOpenEvents) as any[] | undefined;
   const myBets = useQuery(api.bets.getMyBets) as any[] | undefined;
+
+  // Add: creator management hooks
+  const myCreatedEvents = useQuery(api.bets.listMyEvents) as any[] | undefined;
+  const closeBetEvent = useMutation(api.bets.closeEvent);
+  const resolveBetEvent = useMutation(api.bets.resolveEvent);
+
   const placeBet = useMutation(api.bets.placeBet);
   const createBetEvent = useMutation(api.bets.createEvent);
   const cancelBet = useMutation(api.bets.cancelBet);
@@ -52,6 +58,9 @@ export default function Dashboard() {
   // Add: simple builder state for non-odds input
   const [parsedNames, setParsedNames] = useState<string[]>([]);
   const [simpleMultipliers, setSimpleMultipliers] = useState<Record<string, number>>({});
+
+  // Add: resolutions state for creator-managed events
+  const [resolutions, setResolutions] = useState<Record<string, string>>({});
 
   // Helper to evenly distribute percentage
   const distributeEvenly = (names: string[]) => {
@@ -185,6 +194,29 @@ export default function Dashboard() {
       setBetSelections((prev) => ({ ...prev, [eventId]: { option: "", amount: 0 } }));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to delete bet");
+    }
+  };
+
+  const handleCloseMyEvent = async (eventId: string) => {
+    try {
+      await closeBetEvent({ eventId } as any);
+      toast.success("Event closed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to close event");
+    }
+  };
+
+  const handleResolveMyEvent = async (eventId: string) => {
+    const opt = resolutions[eventId];
+    if (!opt) {
+      toast.error("Select the winning option");
+      return;
+    }
+    try {
+      await resolveBetEvent({ eventId: eventId as any, winningOption: opt });
+      toast.success("Event resolved and payouts distributed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to resolve event");
     }
   };
 
@@ -688,6 +720,68 @@ export default function Dashboard() {
                     </div>
                   ))}
                   {myBets?.length === 0 && <div className="text-gray-400 text-center py-6">No bets placed yet</div>}
+                </CardContent>
+              </Card>
+
+              {/* My Created Events Manager */}
+              <Card className="bg-gray-900/50 border-green-500/30">
+                <CardHeader>
+                  <CardTitle className="text-green-500">My Created Events</CardTitle>
+                  <CardDescription className="text-gray-400">Close or resolve your events</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(myCreatedEvents || []).map((evt) => (
+                    <div key={evt._id} className="p-4 bg-gray-800/30 rounded border border-gray-700 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-cyan-400 font-bold">{evt.title}</div>
+                          {evt.description && <div className="text-sm text-gray-400">{evt.description}</div>}
+                          <div className="text-xs text-gray-500 mt-1">
+                            Status: <span className="uppercase">{evt.status}</span>
+                            {evt.resolvedOption && <span className="ml-2 text-yellow-400">Winner: {evt.resolvedOption}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          {evt.status === "open" && (
+                            <Button
+                              size="sm"
+                              className="bg-yellow-400/20 border border-yellow-400 text-yellow-400 hover:bg-yellow-400/30"
+                              onClick={() => handleCloseMyEvent(evt._id)}
+                            >
+                              Close
+                            </Button>
+                          )}
+                          {evt.status !== "resolved" && (
+                            <Button
+                              size="sm"
+                              className="bg-green-500/20 border border-green-500 text-green-500 hover:bg-green-500/30"
+                              onClick={() => handleResolveMyEvent(evt._id)}
+                            >
+                              Resolve
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                      {evt.status !== "resolved" && (
+                        <div className="flex flex-wrap gap-2">
+                          {evt.options?.map((opt: any) => (
+                            <Button
+                              key={opt.label}
+                              size="sm"
+                              variant={resolutions[evt._id] === opt.label ? "default" : "outline"}
+                              className={resolutions[evt._id] === opt.label ? "bg-cyan-400 text-black" : "border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"}
+                              onClick={() => setResolutions((p) => ({ ...p, [evt._id]: opt.label }))}
+                            >
+                              {opt.label} ({opt.odds}x)
+                            </Button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {myCreatedEvents?.length === 0 && (
+                    <div className="text-center py-8 text-gray-400">You haven't created any events yet</div>
+                  )}
                 </CardContent>
               </Card>
             </motion.div>

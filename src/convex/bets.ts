@@ -131,23 +131,30 @@ export const placeBet = mutation({
   },
 });
 
-// Admin: Close an event (stop betting)
+// Admin or Creator: Close an event (stop betting)
 export const closeEvent = mutation({
   args: { eventId: v.id("bettingEvents") },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can close events");
+    if (!user) {
+      throw new Error("Not authenticated");
     }
     const event = await ctx.db.get(args.eventId);
     if (!event) throw new Error("Event not found");
+
+    const isAdmin = user.role === "admin";
+    const isCreator = event.createdBy === user._id;
+    if (!isAdmin && !isCreator) {
+      throw new Error("Only the event creator or an admin can close events");
+    }
+
     if (event.status !== BET_EVENT_STATUS.OPEN) return { success: true };
     await ctx.db.patch(args.eventId, { status: BET_EVENT_STATUS.CLOSED });
     return { success: true };
   },
 });
 
-// Admin: Resolve an event, pay out winners by fixed odds
+// Admin or Creator: Resolve an event, pay out winners by fixed odds
 export const resolveEvent = mutation({
   args: {
     eventId: v.id("bettingEvents"),
@@ -155,11 +162,18 @@ export const resolveEvent = mutation({
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can resolve events");
+    if (!user) {
+      throw new Error("Not authenticated");
     }
     const event = await ctx.db.get(args.eventId);
     if (!event) throw new Error("Event not found");
+
+    const isAdmin = user.role === "admin";
+    const isCreator = event.createdBy === user._id;
+    if (!isAdmin && !isCreator) {
+      throw new Error("Only the event creator or an admin can resolve events");
+    }
+
     const winning = event.options.find((o) => o.label === args.winningOption);
     if (!winning) {
       throw new Error("Invalid winning option");
@@ -207,6 +221,19 @@ export const listAllEvents = query({
       throw new Error("Only admins can view all events");
     }
     return await ctx.db.query("bettingEvents").collect();
+  },
+});
+
+// Public: List events created by current user
+export const listMyEvents = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+    return await ctx.db
+      .query("bettingEvents")
+      .withIndex("by_created_by", (q) => q.eq("createdBy", user._id))
+      .collect();
   },
 });
 
