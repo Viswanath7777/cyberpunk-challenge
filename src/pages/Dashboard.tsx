@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -20,12 +21,22 @@ export default function Dashboard() {
   const character = useQuery(api.characters.getCharacter);
   const challenges = useQuery(api.challenges.getActiveChallenges) as any[] | undefined;
   const leaderboard = useQuery(api.characters.getLeaderboard);
+
+  // Add missing submitProof mutation
   const submitProof = useMutation(api.challenges.submitProof);
-  
+
+  // Betting queries/mutations
+  const openEvents = useQuery(api.bets.listOpenEvents) as any[] | undefined;
+  const myBets = useQuery(api.bets.getMyBets) as any[] | undefined;
+  const placeBet = useMutation(api.bets.placeBet);
+
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [proofText, setProofText] = useState("");
   const [proofImageUrl, setProofImageUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Betting state
+  const [betSelections, setBetSelections] = useState<Record<string, { option: string; amount: number }>>({});
 
   const handleSignOut = async () => {
     await signOut();
@@ -54,6 +65,25 @@ export default function Dashboard() {
       toast.error(error instanceof Error ? error.message : "Failed to submit proof");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePlaceBet = async (event: any) => {
+    const sel = betSelections[event._id];
+    if (!sel || !sel.option || !sel.amount || sel.amount <= 0) {
+      toast.error("Select an option and enter a valid amount");
+      return;
+    }
+    try {
+      await placeBet({
+        eventId: event._id,
+        option: sel.option,
+        amount: sel.amount,
+      } as any);
+      toast.success("Bet placed!");
+      setBetSelections((prev) => ({ ...prev, [event._id]: { option: "", amount: 0 } }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to place bet");
     }
   };
 
@@ -134,6 +164,9 @@ export default function Dashboard() {
             <TabsTrigger value="leaderboard" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
               <Trophy className="w-4 h-4 mr-2" />
               Leaderboard
+            </TabsTrigger>
+            <TabsTrigger value="bets" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+              💱 Bets
             </TabsTrigger>
           </TabsList>
 
@@ -285,6 +318,101 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
               ))}
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="bets" className="space-y-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid gap-4">
+              {/* Open Events */}
+              <Card className="bg-gray-900/50 border-cyan-400/30">
+                <CardHeader>
+                  <CardTitle className="text-cyan-400">Open Betting Events</CardTitle>
+                  <CardDescription className="text-gray-400">Place a bet using your credits</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {(openEvents || []).map((evt) => {
+                    const sel = betSelections[evt._id] || { option: "", amount: 0 };
+                    const alreadyBet = (myBets || []).some((b: any) => b.eventId === evt._id);
+                    return (
+                      <div key={evt._id} className="p-4 bg-gray-800/50 rounded border border-gray-700 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-cyan-400 font-bold">{evt.title}</div>
+                            {evt.description && <div className="text-sm text-gray-400">{evt.description}</div>}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Status: <span className="text-green-400 uppercase">{evt.status}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {evt.options?.map((opt: string) => (
+                            <Button
+                              key={opt}
+                              size="sm"
+                              variant={sel.option === opt ? "default" : "outline"}
+                              className={sel.option === opt ? "bg-cyan-400 text-black" : "border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"}
+                              onClick={() =>
+                                setBetSelections((prev) => ({
+                                  ...prev,
+                                  [evt._id]: { option: opt, amount: sel.amount },
+                                }))
+                              }
+                            >
+                              {opt}
+                            </Button>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <Input
+                            type="number"
+                            min={1}
+                            value={sel.amount || ""}
+                            onChange={(e) =>
+                              setBetSelections((prev) => ({
+                                ...prev,
+                                [evt._id]: { option: sel.option, amount: parseInt(e.target.value) || 0 },
+                              }))
+                            }
+                            placeholder="Amount (CR)"
+                            className="bg-gray-800 border-gray-600 text-white w-40"
+                          />
+                          <Button
+                            onClick={() => handlePlaceBet(evt)}
+                            disabled={alreadyBet || !sel.option || !sel.amount || sel.amount <= 0}
+                            className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                          >
+                            {alreadyBet ? "Already Bet" : "Place Bet"}
+                          </Button>
+                        </div>
+                        {alreadyBet && <div className="text-xs text-yellow-400">You've already placed a bet on this event.</div>}
+                      </div>
+                    );
+                  })}
+                  {openEvents?.length === 0 && <div className="text-gray-400 text-center py-6">No open betting events</div>}
+                </CardContent>
+              </Card>
+
+              {/* My Bets */}
+              <Card className="bg-gray-900/50 border-cyan-400/30">
+                <CardHeader>
+                  <CardTitle className="text-cyan-400">My Bets</CardTitle>
+                  <CardDescription className="text-gray-400">Your active and past bets</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {(myBets || []).map((b: any) => (
+                    <div key={b._id} className="flex items-center justify-between p-3 bg-gray-800/30 rounded border border-gray-700">
+                      <div className="text-sm">
+                        <div className="text-cyan-400">Event: {String(b.eventId)}</div>
+                        <div className="text-gray-400">Option: {b.option}</div>
+                      </div>
+                      <div className="text-green-400 font-bold">{b.amount} CR</div>
+                    </div>
+                  ))}
+                  {myBets?.length === 0 && <div className="text-gray-400 text-center py-6">No bets placed yet</div>}
+                </CardContent>
+              </Card>
             </motion.div>
           </TabsContent>
         </Tabs>

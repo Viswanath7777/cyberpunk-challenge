@@ -1,0 +1,203 @@
+import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+import { getCurrentUser } from "./users";
+import { BET_EVENT_STATUS } from "./schema";
+
+// Admin: Create a new betting event
+export const createEvent = mutation({
+  args: {
+    title: v.string(),
+    description: v.optional(v.string()),
+    options: v.array(v.string()),
+    durationHours: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can create betting events");
+    }
+
+    if (args.options.length < 2) {
+      throw new Error("Provide at least two options");
+    }
+    const closesAt = args.durationHours
+      ? Date.now() + args.durationHours * 60 * 60 * 1000
+      : undefined;
+
+    const eventId = await ctx.db.insert("bettingEvents", {
+      title: args.title,
+      description: args.description,
+      options: args.options,
+      status: BET_EVENT_STATUS.OPEN,
+      createdBy: user._id,
+      closesAt,
+    });
+    return eventId;
+  },
+});
+
+// Public: List open events
+export const listOpenEvents = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("bettingEvents")
+      .withIndex("by_status", (q) => q.eq("status", BET_EVENT_STATUS.OPEN))
+      .collect();
+  },
+});
+
+// Public: Get current user's bets
+export const getMyBets = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+    return await ctx.db
+      .query("bets")
+      .withIndex("by_user", (q) => q.eq("userId", user._id))
+      .collect();
+  },
+});
+
+// Public: Place a bet (one bet per event per user)
+export const placeBet = mutation({
+  args: {
+    eventId: v.id("bettingEvents"),
+    option: v.string(),
+    amount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+    if (args.amount <= 0) {
+      throw new Error("Bet amount must be greater than 0");
+    }
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event) throw new Error("Event not found");
+    if (event.status !== BET_EVENT_STATUS.OPEN) {
+      throw new Error("Event is not open for betting");
+    }
+    if (event.closesAt && Date.now() > event.closesAt) {
+      throw new Error("Event betting period has ended");
+    }
+    if (!event.options.includes(args.option)) {
+      throw new Error("Invalid option");
+    }
+
+    // Enforce single bet per event per user
+    const existing = await ctx.db
+      .query("bets")
+      .withIndex("by_event_and_user", (q) =>
+        q.eq("eventId", args.eventId).eq("userId", user._id),
+      )
+      .first();
+    if (existing) {
+      throw new Error("You already placed a bet on this event");
+    }
+
+    const credits = user.credits ?? 1000;
+    if (credits < args.amount) {
+      throw new Error("Insufficient credits");
+    }
+
+    // Deduct credits
+    await ctx.db.patch(user._id, {
+      credits: credits - args.amount,
+    });
+
+    const betId = await ctx.db.insert("bets", {
+      eventId: args.eventId,
+      userId: user._id,
+      option: args.option,
+      amount: args.amount,
+      placedAt: Date.now(),
+    });
+
+    return betId;
+  },
+});
+
+// Admin: Close an event (stop betting)
+export const closeEvent = mutation({
+  args: { eventId: v.id("bettingEvents") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can close events");
+    }
+    const event = await ctx.db.get(args.eventId);
+    if (!event) throw new Error("Event not found");
+    if (event.status !== BET_EVENT_STATUS.OPEN) return { success: true };
+    await ctx.db.patch(args.eventId, { status: BET_EVENT_STATUS.CLOSED });
+    return { success: true };
+  },
+});
+
+// Admin: Resolve an event, pay out winners proportionally
+export const resolveEvent = mutation({
+  args: {
+    eventId: v.id("bettingEvents"),
+    winningOption: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can resolve events");
+    }
+    const event = await ctx.db.get(args.eventId);
+    if (!event) throw new Error("Event not found");
+    if (!event.options.includes(args.winningOption)) {
+      throw new Error("Invalid winning option");
+    }
+    if (event.status === BET_EVENT_STATUS.RESOLVED) {
+      return { success: true };
+    }
+
+    // Collect all bets for this event
+    const allBets = await ctx.db
+      .query("bets")
+      .withIndex("by_event", (q) => q.eq("eventId", args.eventId))
+      .collect();
+
+    const totalPool = allBets.reduce((s, b) => s + (b.amount || 0), 0);
+    const winners = allBets.filter((b) => b.option === args.winningOption);
+    const winnersPool = winners.reduce((s, b) => s + (b.amount || 0), 0);
+
+    // If there are winners, distribute proportionally
+    if (winners.length > 0 && winnersPool > 0 && totalPool > 0) {
+      const ratio = totalPool / winnersPool;
+      // Pay out each winner
+      for (const bet of winners) {
+        const u = await ctx.db.get(bet.userId);
+        if (!u) continue;
+        const payout = Math.floor(bet.amount * ratio); // floor to keep it simple
+        const currentCredits = u.credits ?? 1000;
+        await ctx.db.patch(u._id, { credits: currentCredits + payout });
+      }
+    }
+
+    // Mark event resolved
+    await ctx.db.patch(args.eventId, {
+      status: BET_EVENT_STATUS.RESOLVED,
+      resolvedOption: args.winningOption,
+    });
+
+    return { success: true, totalPool, winnersPool, winners: winners.length };
+  },
+});
+
+// Admin: List all events
+export const listAllEvents = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can view all events");
+    }
+    return await ctx.db.query("bettingEvents").collect();
+  },
+});

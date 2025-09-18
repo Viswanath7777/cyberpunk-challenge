@@ -42,6 +42,18 @@ export const submissionStatusValidator = v.union(
   v.literal(SUBMISSION_STATUS.REJECTED),
 );
 
+export const BET_EVENT_STATUS = {
+  OPEN: "open",
+  CLOSED: "closed",
+  RESOLVED: "resolved",
+} as const;
+
+export const betEventStatusValidator = v.union(
+  v.literal(BET_EVENT_STATUS.OPEN),
+  v.literal(BET_EVENT_STATUS.CLOSED),
+  v.literal(BET_EVENT_STATUS.RESOLVED),
+);
+
 const schema = defineSchema(
   {
     // default auth tables using convex auth.
@@ -93,6 +105,31 @@ const schema = defineSchema(
       .index("by_user", ["userId"])
       .index("by_status", ["status"])
       .index("by_challenge_and_user", ["challengeId", "userId"]),
+
+    // Betting events table
+    bettingEvents: defineTable({
+      title: v.string(),
+      description: v.optional(v.string()),
+      options: v.array(v.string()),
+      status: betEventStatusValidator,
+      createdBy: v.id("users"),
+      closesAt: v.optional(v.number()),
+      resolvedOption: v.optional(v.string()),
+    })
+      .index("by_status", ["status"])
+      .index("by_created_by", ["createdBy"]),
+
+    // Bets table
+    bets: defineTable({
+      eventId: v.id("bettingEvents"),
+      userId: v.id("users"),
+      option: v.string(),
+      amount: v.number(),
+      placedAt: v.number(),
+    })
+      .index("by_event", ["eventId"])
+      .index("by_user", ["userId"])
+      .index("by_event_and_user", ["eventId", "userId"]),
   },
   {
     schemaValidation: false,

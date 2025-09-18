@@ -22,6 +22,10 @@ export default function Admin() {
   const createChallenge = useMutation(api.challenges.createChallenge);
   const reviewSubmission = useMutation(api.challenges.reviewSubmission);
   const resetWeeklyXp = useMutation(api.characters.resetWeeklyXp);
+  const listAllEvents = useQuery(api.bets.listAllEvents);
+  const createBetEvent = useMutation(api.bets.createEvent);
+  const closeBetEvent = useMutation(api.bets.closeEvent);
+  const resolveBetEvent = useMutation(api.bets.resolveEvent);
 
   const [isCreating, setIsCreating] = useState(false);
   const [newChallenge, setNewChallenge] = useState({
@@ -31,6 +35,13 @@ export default function Admin() {
     type: "daily" as "daily" | "weekly",
     durationHours: 24,
   });
+  const [betEvent, setBetEvent] = useState({
+    title: "",
+    description: "",
+    optionsText: "", // comma-separated
+    durationHours: 24,
+  });
+  const [resolutions, setResolutions] = useState<Record<string, string>>({});
 
   // Redirect if not admin
   if (user?.role !== "admin") {
@@ -88,6 +99,52 @@ export default function Admin() {
       toast.success("Weekly XP reset and badges awarded!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to reset weekly XP");
+    }
+  };
+
+  const handleCreateBetEvent = async () => {
+    const options = betEvent.optionsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!betEvent.title || options.length < 2) {
+      toast.error("Enter a title and at least two options (comma-separated)");
+      return;
+    }
+    try {
+      await createBetEvent({
+        title: betEvent.title,
+        description: betEvent.description || undefined,
+        options,
+        durationHours: betEvent.durationHours,
+      });
+      toast.success("Betting event created");
+      setBetEvent({ title: "", description: "", optionsText: "", durationHours: 24 });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create event");
+    }
+  };
+
+  const handleCloseEvent = async (eventId: string) => {
+    try {
+      await closeBetEvent({ eventId: eventId as any });
+      toast.success("Event closed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to close event");
+    }
+  };
+
+  const handleResolveEvent = async (eventId: string) => {
+    const opt = resolutions[eventId];
+    if (!opt) {
+      toast.error("Select the winning option");
+      return;
+    }
+    try {
+      await resolveBetEvent({ eventId: eventId as any, winningOption: opt });
+      toast.success("Event resolved and payouts distributed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to resolve event");
     }
   };
 
@@ -220,6 +277,128 @@ export default function Admin() {
               >
                 {isCreating ? "Creating..." : "Create Challenge"}
               </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Manage Betting Events */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="bg-gray-900/50 border-cyan-400/30">
+            <CardHeader>
+              <CardTitle className="text-cyan-400">Create Betting Event</CardTitle>
+              <CardDescription className="text-gray-400">Add an event students can bet on</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="betTitle" className="text-cyan-400">Title</Label>
+                  <Input
+                    id="betTitle"
+                    value={betEvent.title}
+                    onChange={(e) => setBetEvent((p) => ({ ...p, title: e.target.value }))}
+                    placeholder="e.g., Highest marks in Math test"
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="betDuration" className="text-cyan-400">Duration (hours)</Label>
+                  <Input
+                    id="betDuration"
+                    type="number"
+                    value={betEvent.durationHours}
+                    onChange={(e) => setBetEvent((p) => ({ ...p, durationHours: parseInt(e.target.value) || 24 }))}
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="betDesc" className="text-cyan-400">Description (optional)</Label>
+                <Textarea
+                  id="betDesc"
+                  value={betEvent.description}
+                  onChange={(e) => setBetEvent((p) => ({ ...p, description: e.target.value }))}
+                  placeholder="Details about the event..."
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+              <div>
+                <Label htmlFor="betOptions" className="text-cyan-400">Options (comma-separated)</Label>
+                <Input
+                  id="betOptions"
+                  value={betEvent.optionsText}
+                  onChange={(e) => setBetEvent((p) => ({ ...p, optionsText: e.target.value }))}
+                  placeholder="Alice, Bob, Charlie"
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+              <Button
+                onClick={handleCreateBetEvent}
+                className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+              >
+                Create Betting Event
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Events List & Actions */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <Card className="bg-gray-900/50 border-green-500/30">
+            <CardHeader>
+              <CardTitle className="text-green-500">All Betting Events</CardTitle>
+              <CardDescription className="text-gray-400">Close or resolve events</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {listAllEvents?.map((evt) => (
+                <div key={evt._id} className="p-4 bg-gray-800/30 rounded border border-gray-700 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-cyan-400 font-bold">{evt.title}</div>
+                      {evt.description && <div className="text-sm text-gray-400">{evt.description}</div>}
+                      <div className="text-xs text-gray-500 mt-1">
+                        Status: <span className="uppercase">{evt.status}</span>
+                        {evt.resolvedOption && <span className="ml-2 text-yellow-400">Winner: {evt.resolvedOption}</span>}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {evt.status === "open" && (
+                        <Button
+                          size="sm"
+                          className="bg-yellow-400/20 border border-yellow-400 text-yellow-400 hover:bg-yellow-400/30"
+                          onClick={() => handleCloseEvent(evt._id)}
+                        >
+                          Close
+                        </Button>
+                      )}
+                      {evt.status !== "resolved" && (
+                        <Button
+                          size="sm"
+                          className="bg-green-500/20 border border-green-500 text-green-500 hover:bg-green-500/30"
+                          onClick={() => handleResolveEvent(evt._id)}
+                        >
+                          Resolve
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {evt.status !== "resolved" && (
+                    <div className="flex flex-wrap gap-2">
+                      {evt.options?.map((opt: string) => (
+                        <Button
+                          key={opt}
+                          size="sm"
+                          variant={resolutions[evt._id] === opt ? "default" : "outline"}
+                          className={resolutions[evt._id] === opt ? "bg-cyan-400 text-black" : "border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"}
+                          onClick={() => setResolutions((p) => ({ ...p, [evt._id]: opt }))}
+                        >
+                          {opt}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {listAllEvents?.length === 0 && <div className="text-center py-8 text-gray-400">No betting events</div>}
             </CardContent>
           </Card>
         </motion.div>
