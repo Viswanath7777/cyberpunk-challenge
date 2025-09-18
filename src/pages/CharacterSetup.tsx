@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { useMutation } from "convex/react";
 import { motion } from "framer-motion";
-import { Zap, User } from "lucide-react";
+import { Zap, User, Coins } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -109,6 +109,13 @@ export default function CharacterSetup() {
                   <span className="text-yellow-400 flex items-center gap-1">
                     <Zap className="w-3 h-3" />
                     0
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Credits:</span>
+                  <span className="text-green-400 flex items-center gap-1">
+                    <Coins className="w-3 h-3" />
+                    1000
                   </span>
                 </div>
                 <div className="flex justify-between">

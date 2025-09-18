@@ -63,6 +63,7 @@ const schema = defineSchema(
       xp: v.optional(v.number()),
       weeklyXp: v.optional(v.number()), // XP earned this week for badges
       badges: v.optional(v.array(v.string())), // Array of badge names
+      credits: v.optional(v.number()),
     }).index("email", ["email"]), // index for the email. do not remove or modify
 
     // Challenges table

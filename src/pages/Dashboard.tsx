@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { motion } from "framer-motion";
-import { Trophy, Zap, Target, Crown, LogOut, Settings } from "lucide-react";
+import { Trophy, Zap, Target, Crown, LogOut, Settings, Coins } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -94,6 +94,10 @@ export default function Dashboard() {
             <div className="flex items-center gap-2 text-sm">
               <Zap className="w-4 h-4 text-yellow-400" />
               <span className="text-yellow-400">{character.xp} XP</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <Coins className="w-4 h-4 text-green-400" />
+              <span className="text-green-400">{character.credits} CR</span>
             </div>
             {user?.role === "admin" && (
               <Button
