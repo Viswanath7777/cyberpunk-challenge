@@ -42,10 +42,26 @@ export default function Dashboard() {
   const [betEvent, setBetEvent] = useState({
     title: "",
     description: "",
-    optionsText: "", // "Alice:2.5, Bob:1.8"
+    optionsText: "", // "Alice:2.5, Bob:1.8" OR "Alice, Bob" (simple)
     durationHours: 24,
   });
   const [creatingEvent, setCreatingEvent] = useState(false);
+
+  // Add: simple builder state for non-odds input
+  const [parsedNames, setParsedNames] = useState<string[]>([]);
+  const [simpleChances, setSimpleChances] = useState<Record<string, number>>({});
+
+  // Helper to evenly distribute percentage
+  const distributeEvenly = (names: string[]) => {
+    if (names.length === 0) return {};
+    const base = Math.floor(100 / names.length);
+    const remainder = 100 - base * names.length;
+    const result: Record<string, number> = {};
+    names.forEach((n, i) => {
+      result[n] = base + (i < remainder ? 1 : 0);
+    });
+    return result;
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -97,24 +113,48 @@ export default function Dashboard() {
   };
 
   const handleCreateBetEvent = async () => {
-    const raw = betEvent.optionsText
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
+    // If advanced format with ":" provided, keep prior behavior
+    const usingAdvanced = betEvent.optionsText.includes(":");
 
-    const options = raw.map((entry) => {
-      const [labelPart, oddsPart] = entry.split(":").map((s) => s.trim());
-      const odds = Number(oddsPart);
-      return { label: labelPart, odds };
-    });
+    let options: Array<{ label: string; odds: number }> = [];
 
-    if (!betEvent.title || options.length < 2) {
-      toast.error("Enter a title and at least two options (e.g., Alice:2.5, Bob:1.8)");
-      return;
-    }
-    if (options.some((o) => !o.label || !(o.odds > 0))) {
-      toast.error("Each option must include a label and odds > 0 (e.g., Alice:2.5)");
-      return;
+    if (usingAdvanced) {
+      const raw = betEvent.optionsText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+
+      options = raw.map((entry) => {
+        const [labelPart, oddsPart] = entry.split(":").map((s) => s.trim());
+        const odds = Number(oddsPart);
+        return { label: labelPart, odds };
+      });
+
+      if (!betEvent.title || options.length < 2) {
+        toast.error("Enter a title and at least two options (e.g., Alice:2.5, Bob:1.8)");
+        return;
+      }
+      if (options.some((o) => !o.label || !(o.odds > 0))) {
+        toast.error("Each option must include a label and odds > 0 (e.g., Alice:2.5)");
+        return;
+      }
+    } else {
+      // Simple mode: use names + chances -> compute odds = 100 / chance
+      const names = parsedNames;
+      if (!betEvent.title || names.length < 2) {
+        toast.error("Enter a title and at least two names (e.g., Alice, Bob)");
+        return;
+      }
+      const built = names.map((name) => {
+        const chance = Math.max(1, Math.min(99, simpleChances[name] ?? 0)); // clamp 1..99
+        const odds = Number((100 / chance).toFixed(2));
+        return { label: name, odds };
+      });
+      if (built.some((o) => !(o.odds > 0))) {
+        toast.error("Each option must have a valid chance > 0%");
+        return;
+      }
+      options = built;
     }
 
     setCreatingEvent(true);
@@ -127,6 +167,8 @@ export default function Dashboard() {
       } as any);
       toast.success("Betting event created");
       setBetEvent({ title: "", description: "", optionsText: "", durationHours: 24 });
+      setParsedNames([]);
+      setSimpleChances({});
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to create event");
     } finally {
@@ -418,14 +460,84 @@ export default function Dashboard() {
                             />
                           </div>
                           <div>
-                            <Label htmlFor="betOptions" className="text-cyan-400">Options (label:odds, comma-separated)</Label>
+                            <Label htmlFor="betOptions" className="text-cyan-400">Options</Label>
                             <Input
                               id="betOptions"
                               value={betEvent.optionsText}
-                              onChange={(e) => setBetEvent((p) => ({ ...p, optionsText: e.target.value }))}
-                              placeholder="Alice:2.5, Bob:1.8"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBetEvent((p) => ({ ...p, optionsText: val }));
+                                // Simple builder activates when no ":" present
+                                if (!val.includes(":")) {
+                                  const names = val
+                                    .split(",")
+                                    .map((s) => s.trim())
+                                    .filter(Boolean);
+                                  setParsedNames(names);
+                                  // Initialize or preserve chances; default to even split for new names
+                                  const current = { ...simpleChances };
+                                  const newNames = names.filter((n) => !(n in current));
+                                  if (newNames.length > 0 || names.length !== Object.keys(current).length) {
+                                    const even = distributeEvenly(names);
+                                    setSimpleChances(even);
+                                  }
+                                } else {
+                                  setParsedNames([]);
+                                  setSimpleChances({});
+                                }
+                              }}
+                              placeholder='Simple: "Alice, Bob"  •  Advanced: "Alice:2.5, Bob:1.8"'
                               className="bg-gray-800 border-gray-600 text-white"
                             />
+                            {/* Simple odds builder UI */}
+                            {parsedNames.length > 0 && (
+                              <div className="mt-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs text-gray-400">
+                                    Set win chances (%) — odds auto-calc as 100 / chance
+                                  </span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                                    onClick={() => setSimpleChances(distributeEvenly(parsedNames))}
+                                  >
+                                    Even split
+                                  </Button>
+                                </div>
+                                <div className="space-y-2">
+                                  {parsedNames.map((name) => {
+                                    const chance = simpleChances[name] ?? 0;
+                                    const odds = chance > 0 ? (100 / chance) : 0;
+                                    return (
+                                      <div key={name} className="flex items-center justify-between gap-3 p-2 bg-gray-800/50 rounded border border-gray-700">
+                                        <div className="text-sm text-cyan-400">{name}</div>
+                                        <div className="flex items-center gap-2">
+                                          <Input
+                                            type="number"
+                                            min={1}
+                                            max={99}
+                                            value={chance || ""}
+                                            onChange={(e) => {
+                                              const v = parseInt(e.target.value) || 0;
+                                              setSimpleChances((prev) => ({
+                                                ...prev,
+                                                [name]: v,
+                                              }));
+                                            }}
+                                            placeholder="%"
+                                            className="bg-gray-900 border-gray-700 text-white w-24"
+                                          />
+                                          <div className="text-xs text-gray-400">
+                                            ≈ {odds > 0 ? odds.toFixed(2) : "--"}x
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <Label htmlFor="betDuration" className="text-cyan-400">Duration (hours)</Label>
@@ -439,7 +551,13 @@ export default function Dashboard() {
                           </div>
                           <Button
                             onClick={handleCreateBetEvent}
-                            disabled={creatingEvent || !betEvent.title.trim() || !betEvent.optionsText.trim()}
+                            disabled={
+                              creatingEvent ||
+                              !betEvent.title.trim() ||
+                              !betEvent.optionsText.trim() ||
+                              // Disable if simple builder has < 2 names
+                              (!betEvent.optionsText.includes(":") && parsedNames.length < 2)
+                            }
                             className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
                           >
                             {creatingEvent ? "Creating..." : "Create Event"}
