@@ -97,12 +97,9 @@ export const getLeaderboard = query({
         _id: user._id,
         name: user.name || "Anonymous",
         characterName: user.characterName || "Unknown",
-        level: user.level || 1,
-        xp: user.xp || 0,
-        weeklyXp: user.weeklyXp || 0,
-        badges: user.badges || [],
+        credits: user.credits ?? 0,
       }))
-      .sort((a, b) => b.xp - a.xp);
+      .sort((a, b) => b.credits - a.credits);
   },
 });
 
@@ -115,37 +112,7 @@ export const resetWeeklyXp = mutation({
       .filter((q) => q.neq(q.field("characterName"), undefined))
       .collect();
 
-    // Award badges to top 3 players
-    const sortedUsers = users
-      .sort((a, b) => (b.weeklyXp || 0) - (a.weeklyXp || 0))
-      .slice(0, 3);
-
-    const badges = ["🥇 Weekly Champion", "🥈 Weekly Runner-up", "🥉 Weekly Third Place"];
-
-    for (let i = 0; i < sortedUsers.length; i++) {
-      const user = sortedUsers[i];
-      const currentBadges = user.badges || [];
-      
-      // Remove old weekly badges and add new one
-      const filteredBadges = currentBadges.filter(badge => !badge.includes("Weekly"));
-      filteredBadges.push(badges[i]);
-
-      await ctx.db.patch(user._id, {
-        weeklyXp: 0,
-        badges: filteredBadges,
-      });
-    }
-
-    // Reset weekly XP for all other users
-    for (const user of users) {
-      if (!sortedUsers.includes(user)) {
-        await ctx.db.patch(user._id, {
-          weeklyXp: 0,
-        });
-      }
-    }
-
-    // Add weekly stipend: +200 credits to every user
+    // Remove weekly reset of XP and badges — only stipend remains
     for (const user of users) {
       const currentCredits = user.credits ?? 0;
       await ctx.db.patch(user._id, {
@@ -153,6 +120,6 @@ export const resetWeeklyXp = mutation({
       });
     }
 
-    return { success: true };
+    return { success: true, stipendGiven: users.length };
   },
 });

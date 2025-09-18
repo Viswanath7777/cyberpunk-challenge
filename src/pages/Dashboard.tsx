@@ -259,15 +259,11 @@ export default function Dashboard() {
               CYBER_CLASS
             </div>
             <div className="text-sm text-green-400">
-              [{character.characterName}] LVL.{character.level}
+              [{character.characterName}]
             </div>
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm">
-              <Zap className="w-4 h-4 text-yellow-400" />
-              <span className="text-yellow-400">{character.xp} XP</span>
-            </div>
             <div className="flex items-center gap-2 text-sm">
               <Coins className="w-4 h-4 text-green-400" />
               <span className="text-green-400">{character.credits} CR</span>
@@ -442,19 +438,11 @@ export default function Dashboard() {
                           <div className="text-sm text-gray-400">
                             {player.name}
                           </div>
-                          {player.badges && player.badges.length > 0 && (
-                            <div className="text-xs text-yellow-400 mt-1">
-                              {player.badges.join(" ")}
-                            </div>
-                          )}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-bold text-yellow-400">
-                          {player.xp} XP
-                        </div>
-                        <div className="text-sm text-gray-400">
-                          Level {player.level}
+                        <div className="text-lg font-bold text-green-400">
+                          {player.credits} CR
                         </div>
                       </div>
                     </div>
