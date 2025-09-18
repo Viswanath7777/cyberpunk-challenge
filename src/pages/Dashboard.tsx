@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -49,7 +50,7 @@ export default function Dashboard() {
 
   // Add: simple builder state for non-odds input
   const [parsedNames, setParsedNames] = useState<string[]>([]);
-  const [simpleChances, setSimpleChances] = useState<Record<string, number>>({});
+  const [simpleMultipliers, setSimpleMultipliers] = useState<Record<string, number>>({});
 
   // Helper to evenly distribute percentage
   const distributeEvenly = (names: string[]) => {
@@ -146,12 +147,11 @@ export default function Dashboard() {
         return;
       }
       const built = names.map((name) => {
-        const chance = Math.max(1, Math.min(99, simpleChances[name] ?? 0)); // clamp 1..99
-        const odds = Number((100 / chance).toFixed(2));
+        const odds = Number(simpleMultipliers[name] ?? 2);
         return { label: name, odds };
       });
       if (built.some((o) => !(o.odds > 0))) {
-        toast.error("Each option must have a valid chance > 0%");
+        toast.error("Each option must have a valid multiplier > 0x");
         return;
       }
       options = built;
@@ -168,7 +168,7 @@ export default function Dashboard() {
       toast.success("Betting event created");
       setBetEvent({ title: "", description: "", optionsText: "", durationHours: 24 });
       setParsedNames([]);
-      setSimpleChances({});
+      setSimpleMultipliers({});
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to create event");
     } finally {
@@ -474,16 +474,15 @@ export default function Dashboard() {
                                     .map((s) => s.trim())
                                     .filter(Boolean);
                                   setParsedNames(names);
-                                  // Initialize or preserve chances; default to even split for new names
-                                  const current = { ...simpleChances };
-                                  const newNames = names.filter((n) => !(n in current));
-                                  if (newNames.length > 0 || names.length !== Object.keys(current).length) {
-                                    const even = distributeEvenly(names);
-                                    setSimpleChances(even);
-                                  }
+                                  // Initialize or preserve multipliers; default to 2x
+                                  const next: Record<string, number> = {};
+                                  names.forEach((n) => {
+                                    next[n] = (simpleMultipliers as any)[n] ?? 2;
+                                  });
+                                  setSimpleMultipliers(next);
                                 } else {
                                   setParsedNames([]);
-                                  setSimpleChances({});
+                                  setSimpleMultipliers({});
                                 }
                               }}
                               placeholder='Simple: "Alice, Bob"  •  Advanced: "Alice:2.5, Bob:1.8"'
@@ -494,43 +493,53 @@ export default function Dashboard() {
                               <div className="mt-3 space-y-2">
                                 <div className="flex items-center justify-between">
                                   <span className="text-xs text-gray-400">
-                                    Set win chances (%) — odds auto-calc as 100 / chance
+                                    Choose a win multiplier (x) for each option
                                   </span>
                                   <Button
                                     size="sm"
                                     variant="outline"
                                     className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
-                                    onClick={() => setSimpleChances(distributeEvenly(parsedNames))}
+                                    onClick={() => {
+                                      const all: Record<string, number> = {};
+                                      parsedNames.forEach((n) => (all[n] = 2));
+                                      setSimpleMultipliers(all);
+                                    }}
                                   >
-                                    Even split
+                                    Set all to 2x
                                   </Button>
                                 </div>
                                 <div className="space-y-2">
                                   {parsedNames.map((name) => {
-                                    const chance = simpleChances[name] ?? 0;
-                                    const odds = chance > 0 ? (100 / chance) : 0;
+                                    const mult = simpleMultipliers[name] ?? 2;
                                     return (
-                                      <div key={name} className="flex items-center justify-between gap-3 p-2 bg-gray-800/50 rounded border border-gray-700">
+                                      <div
+                                        key={name}
+                                        className="flex items-center justify-between gap-3 p-2 bg-gray-800/50 rounded border border-gray-700"
+                                      >
                                         <div className="text-sm text-cyan-400">{name}</div>
                                         <div className="flex items-center gap-2">
-                                          <Input
-                                            type="number"
-                                            min={1}
-                                            max={99}
-                                            value={chance || ""}
-                                            onChange={(e) => {
-                                              const v = parseInt(e.target.value) || 0;
-                                              setSimpleChances((prev) => ({
+                                          <Select
+                                            value={String(mult)}
+                                            onValueChange={(v) =>
+                                              setSimpleMultipliers((prev) => ({
                                                 ...prev,
-                                                [name]: v,
-                                              }));
-                                            }}
-                                            placeholder="%"
-                                            className="bg-gray-900 border-gray-700 text-white w-24"
-                                          />
-                                          <div className="text-xs text-gray-400">
-                                            ≈ {odds > 0 ? odds.toFixed(2) : "--"}x
-                                          </div>
+                                                [name]: parseFloat(v),
+                                              }))
+                                            }
+                                          >
+                                            <SelectTrigger className="w-32 bg-gray-900 border-gray-700 text-white">
+                                              <SelectValue placeholder="Multiplier" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              <SelectItem value="1.1">1.1x</SelectItem>
+                                              <SelectItem value="1.25">1.25x</SelectItem>
+                                              <SelectItem value="1.5">1.5x</SelectItem>
+                                              <SelectItem value="2">2x</SelectItem>
+                                              <SelectItem value="3">3x</SelectItem>
+                                              <SelectItem value="5">5x</SelectItem>
+                                              <SelectItem value="10">10x</SelectItem>
+                                            </SelectContent>
+                                          </Select>
                                         </div>
                                       </div>
                                     );
