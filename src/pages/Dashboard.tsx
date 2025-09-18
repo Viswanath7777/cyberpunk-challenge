@@ -31,6 +31,7 @@ export default function Dashboard() {
   const myBets = useQuery(api.bets.getMyBets) as any[] | undefined;
   const placeBet = useMutation(api.bets.placeBet);
   const createBetEvent = useMutation(api.bets.createEvent);
+  const cancelBet = useMutation(api.bets.cancelBet);
 
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [proofText, setProofText] = useState("");
@@ -173,6 +174,17 @@ export default function Dashboard() {
       toast.error(e instanceof Error ? e.message : "Failed to create event");
     } finally {
       setCreatingEvent(false);
+    }
+  };
+
+  const handleDeleteBet = async (eventId: string) => {
+    try {
+      await cancelBet({ eventId } as any);
+      toast.success("Bet deleted and credits refunded");
+      // Clear selection for this event if any
+      setBetSelections((prev) => ({ ...prev, [eventId]: { option: "", amount: 0 } }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete bet");
     }
   };
 
@@ -632,6 +644,15 @@ export default function Dashboard() {
                           >
                             {alreadyBet ? "Already Bet" : "Place Bet"}
                           </Button>
+                          {alreadyBet && (
+                            <Button
+                              variant="outline"
+                              onClick={() => handleDeleteBet(evt._id)}
+                              className="border-red-500 text-red-500 hover:bg-red-500/10"
+                            >
+                              Delete My Bet
+                            </Button>
+                          )}
                         </div>
                         {alreadyBet && <div className="text-xs text-yellow-400">You've already placed a bet on this event.</div>}
                       </div>
@@ -654,7 +675,16 @@ export default function Dashboard() {
                         <div className="text-cyan-400">Event: {String(b.eventId)}</div>
                         <div className="text-gray-400">Option: {b.option}</div>
                       </div>
-                      <div className="text-green-400 font-bold">{b.amount} CR</div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-green-400 font-bold">{b.amount} CR</div>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleDeleteBet(b.eventId)}
+                          className="border-red-500 text-red-500 hover:bg-red-500/10"
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </div>
                   ))}
                   {myBets?.length === 0 && <div className="text-gray-400 text-center py-6">No bets placed yet</div>}

@@ -209,3 +209,48 @@ export const listAllEvents = query({
     return await ctx.db.query("bettingEvents").collect();
   },
 });
+
+// Add: Allow a user to cancel their own bet on an open event and refund credits
+export const cancelBet = mutation({
+  args: {
+    eventId: v.id("bettingEvents"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    const event = await ctx.db.get(args.eventId);
+    if (!event) throw new Error("Event not found");
+    if (event.status !== BET_EVENT_STATUS.OPEN) {
+      throw new Error("Cannot cancel; event is not open");
+    }
+    if (event.closesAt && Date.now() > event.closesAt) {
+      throw new Error("Cannot cancel; betting period has ended");
+    }
+
+    // Find the user's bet for this event
+    const bet = await ctx.db
+      .query("bets")
+      .withIndex("by_event_and_user", (q) =>
+        q.eq("eventId", args.eventId).eq("userId", user._id),
+      )
+      .first();
+
+    if (!bet) {
+      throw new Error("No bet to cancel for this event");
+    }
+
+    // Refund credits
+    const currentCredits = user.credits ?? 1000;
+    await ctx.db.patch(user._id, {
+      credits: currentCredits + bet.amount,
+    });
+
+    // Delete the bet
+    await ctx.db.delete(bet._id);
+
+    return { success: true };
+  },
+});
