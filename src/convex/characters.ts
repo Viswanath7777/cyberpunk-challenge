@@ -145,6 +145,14 @@ export const resetWeeklyXp = mutation({
       }
     }
 
+    // Add weekly stipend: +200 credits to every user
+    for (const user of users) {
+      const currentCredits = user.credits ?? 0;
+      await ctx.db.patch(user._id, {
+        credits: currentCredits + 200,
+      });
+    }
+
     return { success: true };
   },
 });

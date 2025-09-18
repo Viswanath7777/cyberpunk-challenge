@@ -54,6 +54,20 @@ export const betEventStatusValidator = v.union(
   v.literal(BET_EVENT_STATUS.RESOLVED),
 );
 
+export const LOAN_STATUS = {
+  PENDING: "pending",
+  ACCEPTED: "accepted",
+  REJECTED: "rejected",
+  CANCELED: "canceled",
+} as const;
+
+export const loanStatusValidator = v.union(
+  v.literal(LOAN_STATUS.PENDING),
+  v.literal(LOAN_STATUS.ACCEPTED),
+  v.literal(LOAN_STATUS.REJECTED),
+  v.literal(LOAN_STATUS.CANCELED),
+);
+
 const schema = defineSchema(
   {
     // default auth tables using convex auth.
@@ -131,6 +145,20 @@ const schema = defineSchema(
       .index("by_event", ["eventId"])
       .index("by_user", ["userId"])
       .index("by_event_and_user", ["eventId", "userId"]),
+
+    // Loans table
+    loans: defineTable({
+      borrowerId: v.id("users"),
+      lenderId: v.optional(v.id("users")),
+      amount: v.number(),
+      status: loanStatusValidator,
+      note: v.optional(v.string()),
+      requestedAt: v.number(),
+      fulfilledAt: v.optional(v.number()),
+    })
+      .index("by_status", ["status"])
+      .index("by_borrower", ["borrowerId"])
+      .index("by_lender", ["lenderId"]),
   },
   {
     schemaValidation: false,
