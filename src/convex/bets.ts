@@ -14,8 +14,9 @@ export const createEvent = mutation({
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can create betting events");
+    // Allow any authenticated user to create events (remove admin-only restriction)
+    if (!user) {
+      throw new Error("Not authenticated");
     }
 
     if (args.options.length < 2) {

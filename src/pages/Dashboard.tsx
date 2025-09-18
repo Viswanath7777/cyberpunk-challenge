@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { motion } from "framer-motion";
-import { Trophy, Zap, Target, Crown, LogOut, Settings, Coins } from "lucide-react";
+import { Trophy, Zap, Target, Crown, LogOut, Settings, Coins, Plus } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -29,6 +29,7 @@ export default function Dashboard() {
   const openEvents = useQuery(api.bets.listOpenEvents) as any[] | undefined;
   const myBets = useQuery(api.bets.getMyBets) as any[] | undefined;
   const placeBet = useMutation(api.bets.placeBet);
+  const createBetEvent = useMutation(api.bets.createEvent);
 
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [proofText, setProofText] = useState("");
@@ -37,6 +38,14 @@ export default function Dashboard() {
 
   // Betting state
   const [betSelections, setBetSelections] = useState<Record<string, { option: string; amount: number }>>({});
+
+  const [betEvent, setBetEvent] = useState({
+    title: "",
+    description: "",
+    optionsText: "", // "Alice:2.5, Bob:1.8"
+    durationHours: 24,
+  });
+  const [creatingEvent, setCreatingEvent] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -84,6 +93,44 @@ export default function Dashboard() {
       setBetSelections((prev) => ({ ...prev, [event._id]: { option: "", amount: 0 } }));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to place bet");
+    }
+  };
+
+  const handleCreateBetEvent = async () => {
+    const raw = betEvent.optionsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const options = raw.map((entry) => {
+      const [labelPart, oddsPart] = entry.split(":").map((s) => s.trim());
+      const odds = Number(oddsPart);
+      return { label: labelPart, odds };
+    });
+
+    if (!betEvent.title || options.length < 2) {
+      toast.error("Enter a title and at least two options (e.g., Alice:2.5, Bob:1.8)");
+      return;
+    }
+    if (options.some((o) => !o.label || !(o.odds > 0))) {
+      toast.error("Each option must include a label and odds > 0 (e.g., Alice:2.5)");
+      return;
+    }
+
+    setCreatingEvent(true);
+    try {
+      await createBetEvent({
+        title: betEvent.title,
+        description: betEvent.description || undefined,
+        options,
+        durationHours: betEvent.durationHours,
+      } as any);
+      toast.success("Betting event created");
+      setBetEvent({ title: "", description: "", optionsText: "", durationHours: 24 });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create event");
+    } finally {
+      setCreatingEvent(false);
     }
   };
 
@@ -331,20 +378,75 @@ export default function Dashboard() {
                       <CardTitle className="text-cyan-400">Open Betting Events</CardTitle>
                       <CardDescription className="text-gray-400">Place a bet using your credits</CardDescription>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        if (user?.role === "admin") {
-                          navigate("/admin");
-                        } else {
-                          toast.error("Only admins can create betting events");
-                        }
-                      }}
-                      className="border-pink-500 text-pink-500 hover:bg-pink-500/10"
-                    >
-                      + Add Bet Event
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Bet
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-gray-900 border-cyan-400/30">
+                        <DialogHeader>
+                          <DialogTitle className="text-cyan-400">Create Betting Event</DialogTitle>
+                          <DialogDescription className="text-gray-400">
+                            Set the title, options with odds, and optional description/duration
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          <div>
+                            <Label htmlFor="betTitle" className="text-cyan-400">Title</Label>
+                            <Input
+                              id="betTitle"
+                              value={betEvent.title}
+                              onChange={(e) => setBetEvent((p) => ({ ...p, title: e.target.value }))}
+                              placeholder="e.g., Highest marks in Math test"
+                              className="bg-gray-800 border-gray-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="betDesc" className="text-cyan-400">Description (optional)</Label>
+                            <Textarea
+                              id="betDesc"
+                              value={betEvent.description}
+                              onChange={(e) => setBetEvent((p) => ({ ...p, description: e.target.value }))}
+                              placeholder="Details about the event..."
+                              className="bg-gray-800 border-gray-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="betOptions" className="text-cyan-400">Options (label:odds, comma-separated)</Label>
+                            <Input
+                              id="betOptions"
+                              value={betEvent.optionsText}
+                              onChange={(e) => setBetEvent((p) => ({ ...p, optionsText: e.target.value }))}
+                              placeholder="Alice:2.5, Bob:1.8"
+                              className="bg-gray-800 border-gray-600 text-white"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="betDuration" className="text-cyan-400">Duration (hours)</Label>
+                            <Input
+                              id="betDuration"
+                              type="number"
+                              value={betEvent.durationHours}
+                              onChange={(e) => setBetEvent((p) => ({ ...p, durationHours: parseInt(e.target.value) || 24 }))}
+                              className="bg-gray-800 border-gray-600 text-white"
+                            />
+                          </div>
+                          <Button
+                            onClick={handleCreateBetEvent}
+                            disabled={creatingEvent || !betEvent.title.trim() || !betEvent.optionsText.trim()}
+                            className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                          >
+                            {creatingEvent ? "Creating..." : "Create Event"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
