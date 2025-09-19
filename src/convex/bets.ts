@@ -281,3 +281,19 @@ export const cancelBet = mutation({
     return { success: true };
   },
 });
+
+// Add: Count bets for a list of events using the by_event index
+export const countBetsForEvents = query({
+  args: { eventIds: v.array(v.id("bettingEvents")) },
+  handler: async (ctx, args) => {
+    const counts: Record<string, number> = {};
+    for (const eventId of args.eventIds) {
+      const bets = await ctx.db
+        .query("bets")
+        .withIndex("by_event", (q) => q.eq("eventId", eventId))
+        .collect();
+      counts[eventId] = bets.length;
+    }
+    return counts;
+  },
+});

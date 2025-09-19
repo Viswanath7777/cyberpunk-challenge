@@ -30,6 +30,11 @@ export default function Dashboard() {
   const openEvents = useQuery(api.bets.listOpenEvents) as any[] | undefined;
   const myBets = useQuery(api.bets.getMyBets) as any[] | undefined;
 
+  // Add: counts of bets per event
+  const betCounts = useQuery(api.bets.countBetsForEvents, {
+    eventIds: (openEvents || []).map((e: any) => e._id),
+  }) as Record<string, number> | undefined;
+
   // Add: creator management hooks
   const myCreatedEvents = useQuery(api.bets.listMyEvents) as any[] | undefined;
   const closeBetEvent = useMutation(api.bets.closeEvent);
@@ -631,6 +636,8 @@ export default function Dashboard() {
                           </div>
                           <div className="text-xs text-gray-500">
                             Status: <span className="text-green-400 uppercase">{evt.status}</span>
+                            <span className="mx-2 text-gray-600">•</span>
+                            <span className="text-cyan-400">Bets: {betCounts ? betCounts[String(evt._id)] ?? 0 : 0}</span>
                           </div>
                         </div>
 
