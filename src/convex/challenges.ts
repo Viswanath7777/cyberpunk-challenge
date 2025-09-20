@@ -15,8 +15,9 @@ export const createChallenge = mutation({
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
-    if (!user || user.role !== "admin") {
-      throw new Error("Only admins can create challenges");
+    // Allow any authenticated user to create challenges
+    if (!user) {
+      throw new Error("Not authenticated");
     }
 
     const expiresAt = args.durationHours 
@@ -196,5 +197,59 @@ export const reviewSubmission = mutation({
     }
 
     return { success: true };
+  },
+});
+
+// New: list challenges I created
+export const listMyChallenges = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return [];
+    return await ctx.db
+      .query("challenges")
+      .withIndex("by_created_by", (q) => q.eq("createdBy", user._id))
+      .collect();
+  },
+});
+
+// New: creator/admin can view submissions for a challenge
+export const getSubmissionsForChallenge = query({
+  args: {
+    challengeId: v.id("challenges"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    const challenge = await ctx.db.get(args.challengeId);
+    if (!challenge) {
+      throw new Error("Challenge not found");
+    }
+
+    const isCreator = challenge.createdBy === user._id;
+    const isAdmin = user.role === "admin";
+    if (!isCreator && !isAdmin) {
+      throw new Error("Only the creator or an admin can view submissions for this challenge");
+    }
+
+    const subs = await ctx.db
+      .query("submissions")
+      .withIndex("by_challenge", (q) => q.eq("challengeId", args.challengeId))
+      .collect();
+
+    const withSubmitters = await Promise.all(
+      subs.map(async (s) => {
+        const submitter = await ctx.db.get(s.userId);
+        return {
+          ...s,
+          submitter: submitter ? { _id: submitter._id, name: submitter.name ?? "Anonymous", characterName: submitter.characterName ?? "Unknown" } : null,
+        };
+      })
+    );
+
+    return withSubmitters;
   },
 });

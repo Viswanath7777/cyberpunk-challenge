@@ -21,7 +21,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const character = useQuery(api.characters.getCharacter);
   const challenges = useQuery(api.challenges.getActiveChallenges) as any[] | undefined;
-  const leaderboard = useQuery(api.characters.getLeaderboard);
+  // Add: my created challenges & create challenge mutation
+  const myChallenges = useQuery(api.challenges.listMyChallenges) as any[] | undefined;
+  const createChallengeMutation = useMutation(api.challenges.createChallenge);
 
   // Add missing submitProof mutation
   const submitProof = useMutation(api.challenges.submitProof);
@@ -43,6 +45,9 @@ export default function Dashboard() {
   const placeBet = useMutation(api.bets.placeBet);
   const createBetEvent = useMutation(api.bets.createEvent);
   const cancelBet = useMutation(api.bets.cancelBet);
+
+  // Leaderboard data (ranked by permanent credits)
+  const leaderboard = useQuery(api.characters.getLeaderboard) as any[] | undefined;
 
   const [selectedChallenge, setSelectedChallenge] = useState<any>(null);
   const [proofText, setProofText] = useState("");
@@ -76,6 +81,23 @@ export default function Dashboard() {
 
   // Add local state for loan amount input
   const [loanAmount, setLoanAmount] = useState<number>(100);
+
+  // New challenge creation state
+  const [newChallenge, setNewChallenge] = useState({
+    title: "",
+    description: "",
+    xpReward: 50,
+    type: "daily" as "daily" | "weekly",
+    durationHours: 24 as number | undefined,
+  });
+  const [creatingChallenge, setCreatingChallenge] = useState(false);
+
+  // Creator submissions view state
+  const [selectedChallengeForSubs, setSelectedChallengeForSubs] = useState<any>(null);
+  const submissionsForSelected = useQuery(
+    api.challenges.getSubmissionsForChallenge,
+    selectedChallengeForSubs ? ({ challengeId: selectedChallengeForSubs } as any) : undefined
+  ) as any[] | undefined;
 
   // Helper to evenly distribute percentage
   const distributeEvenly = (names: string[]) => {
@@ -235,6 +257,29 @@ export default function Dashboard() {
     }
   };
 
+  const handleCreateChallenge = async () => {
+    if (!newChallenge.title.trim() || !newChallenge.description.trim()) {
+      toast.error("Please fill in title and description");
+      return;
+    }
+    setCreatingChallenge(true);
+    try {
+      await createChallengeMutation({
+        title: newChallenge.title,
+        description: newChallenge.description,
+        xpReward: Number(newChallenge.xpReward) || 0,
+        type: newChallenge.type,
+        durationHours: newChallenge.durationHours,
+      } as any);
+      toast.success("Challenge created");
+      setNewChallenge({ title: "", description: "", xpReward: 50, type: "daily", durationHours: 24 });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create challenge");
+    } finally {
+      setCreatingChallenge(false);
+    }
+  };
+
   if (!character) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -315,6 +360,100 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="challenges" className="space-y-6">
+            {/* New Challenge Button + Dialog */}
+            <div className="flex justify-end">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                  >
+                    + New Challenge
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-gray-900 border-cyan-400/30">
+                  <DialogHeader>
+                    <DialogTitle className="text-cyan-400">Create Challenge</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      Set a title, description, XP reward (for record), type, and optional duration.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="c-title" className="text-cyan-400">Title</Label>
+                      <Input
+                        id="c-title"
+                        value={newChallenge.title}
+                        onChange={(e) => setNewChallenge((p) => ({ ...p, title: e.target.value }))}
+                        className="bg-gray-800 border-gray-600 text-white"
+                        placeholder="e.g., Submit notes for Chapter 3"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="c-desc" className="text-cyan-400">Description</Label>
+                      <Textarea
+                        id="c-desc"
+                        value={newChallenge.description}
+                        onChange={(e) => setNewChallenge((p) => ({ ...p, description: e.target.value }))}
+                        className="bg-gray-800 border-gray-600 text-white"
+                        placeholder="What participants need to do..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <Label htmlFor="c-xp" className="text-cyan-400">XP Reward</Label>
+                        <Input
+                          id="c-xp"
+                          type="number"
+                          value={newChallenge.xpReward}
+                          onChange={(e) => setNewChallenge((p) => ({ ...p, xpReward: parseInt(e.target.value) || 0 }))}
+                          className="bg-gray-800 border-gray-600 text-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-cyan-400">Type</Label>
+                        <Select
+                          value={newChallenge.type}
+                          onValueChange={(v) => setNewChallenge((p) => ({ ...p, type: v as "daily" | "weekly" }))}
+                        >
+                          <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="c-duration" className="text-cyan-400">Duration (hours)</Label>
+                        <Input
+                          id="c-duration"
+                          type="number"
+                          value={newChallenge.durationHours ?? ""}
+                          onChange={(e) =>
+                            setNewChallenge((p) => ({
+                              ...p,
+                              durationHours: e.target.value ? parseInt(e.target.value) || undefined : undefined,
+                            }))
+                          }
+                          className="bg-gray-800 border-gray-600 text-white"
+                          placeholder="24"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleCreateChallenge}
+                      disabled={creatingChallenge || !newChallenge.title.trim() || !newChallenge.description.trim()}
+                      className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                    >
+                      {creatingChallenge ? "Creating..." : "Create Challenge"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -417,6 +556,80 @@ export default function Dashboard() {
                 </Card>
               )}
             </motion.div>
+
+            {/* My Created Challenges (creator can view submissions) */}
+            <Card className="bg-gray-900/50 border-cyan-400/30">
+              <CardHeader>
+                <CardTitle className="text-cyan-400">My Created Challenges</CardTitle>
+                <CardDescription className="text-gray-400">View submissions uploaded by participants</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(myChallenges || []).map((mc: any) => (
+                  <div key={mc._id} className="p-4 bg-gray-800/40 rounded border border-gray-700 flex items-center justify-between">
+                    <div className="text-sm">
+                      <div className="text-cyan-400 font-bold">{mc.title}</div>
+                      <div className="text-xs text-gray-500 uppercase">Type: {mc.type} • Status: {mc.status}</div>
+                    </div>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                          onClick={() => setSelectedChallengeForSubs(mc._id)}
+                        >
+                          View Submissions
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="bg-gray-900 border-cyan-400/30 max-h-[80vh] overflow-auto">
+                        <DialogHeader>
+                          <DialogTitle className="text-cyan-400">Submissions: {mc.title}</DialogTitle>
+                          <DialogDescription className="text-gray-400">
+                            Proofs uploaded by participants. (Approval remains admin-only.)
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                          {(submissionsForSelected || []).map((s: any) => (
+                            <div key={s._id} className="p-3 bg-gray-800/40 rounded border border-gray-700">
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm text-cyan-400">
+                                  {s.submitter?.characterName ?? "Unknown"} <span className="text-gray-500">({s.submitter?.name ?? "Anonymous"})</span>
+                                </div>
+                                <div className="text-xs text-gray-500 uppercase">Status: {s.status}</div>
+                              </div>
+                              {s.proofText && (
+                                <div className="mt-2 text-sm text-gray-300">
+                                  {s.proofText}
+                                </div>
+                              )}
+                              {s.proofImageUrl && (
+                                <div className="mt-2">
+                                  <a
+                                    href={s.proofImageUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-cyan-400 underline text-sm"
+                                  >
+                                    View Image
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                          {(!submissionsForSelected || submissionsForSelected.length === 0) && (
+                            <div className="text-center py-6 text-gray-500 text-sm">
+                              No submissions yet
+                            </div>
+                          )}
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                ))}
+                {myChallenges?.length === 0 && (
+                  <div className="text-center py-6 text-gray-500 text-sm">You haven't created any challenges yet</div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="leaderboard" className="space-y-6">
