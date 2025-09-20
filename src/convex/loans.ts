@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./users";
 import { LOAN_STATUS } from "./schema";
 
-// Borrower (must have 0 credits): create a loan request
+// Borrower (any user can): create a loan request
 export const createLoanRequest = mutation({
   args: {
     amount: v.number(),
@@ -13,10 +13,6 @@ export const createLoanRequest = mutation({
     const me = await getCurrentUser(ctx);
     if (!me) throw new Error("Not authenticated");
 
-    const myCredits = me.credits ?? 0;
-    if (myCredits > 0) {
-      throw new Error("Loan requests are allowed only when you have 0 credits");
-    }
     if (!(args.amount > 0)) {
       throw new Error("Amount must be greater than 0");
     }

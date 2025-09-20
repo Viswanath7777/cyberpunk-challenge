@@ -795,74 +795,71 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle className="text-purple-400">Loans</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Users with 0 credits can request a loan. Others may choose to fund it.
+                    Any user can request a loan. Others may choose to fund it.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Borrower: create request when credits are 0 */}
-                  {character.credits === 0 && (
-                    <div className="p-4 bg-gray-800/40 rounded border border-gray-700 space-y-3">
-                      <div className="text-sm text-gray-300">
-                        You have 0 credits. Request a loan from classmates.
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Input
-                          type="number"
-                          min={1}
-                          value={loanAmount || ""}
-                          onChange={(e) => setLoanAmount(parseInt(e.target.value) || 0)}
-                          placeholder="Amount (CR)"
-                          className="bg-gray-800 border-gray-600 text-white w-40"
-                        />
-                        <Button
-                          className="bg-purple-500/20 border border-purple-500 text-purple-400 hover:bg-purple-500/30"
-                          disabled={!loanAmount || loanAmount <= 0}
-                          onClick={async () => {
-                            try {
-                              await createLoanRequest({ amount: loanAmount } as any);
-                              toast.success("Loan request created");
-                              setLoanAmount(100);
-                            } catch (e) {
-                              toast.error(e instanceof Error ? e.message : "Failed to create loan request");
-                            }
-                          }}
-                        >
-                          Request Loan
-                        </Button>
-                      </div>
-
-                      {/* My loan requests */}
-                      <div className="mt-2 space-y-2">
-                        {(myLoanRequests || []).map((lr: any) => (
-                          <div key={lr._id} className="flex items-center justify-between p-3 bg-gray-900/40 rounded border border-gray-700">
-                            <div className="text-sm">
-                              <div className="text-cyan-400">Requested: {lr.amount} CR</div>
-                              <div className="text-xs text-gray-500 uppercase">Status: {lr.status}</div>
-                            </div>
-                            {lr.status === "pending" && (
-                              <Button
-                                variant="outline"
-                                className="border-red-500 text-red-500 hover:bg-red-500/10"
-                                onClick={async () => {
-                                  try {
-                                    await cancelLoanRequest({ loanId: lr._id } as any);
-                                    toast.success("Loan request canceled");
-                                  } catch (e) {
-                                    toast.error(e instanceof Error ? e.message : "Failed to cancel");
-                                  }
-                                }}
-                              >
-                                Cancel
-                              </Button>
-                            )}
-                          </div>
-                        ))}
-                        {myLoanRequests?.length === 0 && (
-                          <div className="text-xs text-gray-500">No loan requests yet</div>
-                        )}
-                      </div>
+                  <div className="p-4 bg-gray-800/40 rounded border border-gray-700 space-y-3">
+                    <div className="text-sm text-gray-300">
+                      Request a loan from classmates.
                     </div>
-                  )}
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={loanAmount || ""}
+                        onChange={(e) => setLoanAmount(parseInt(e.target.value) || 0)}
+                        placeholder="Amount (CR)"
+                        className="bg-gray-800 border-gray-600 text-white w-40"
+                      />
+                      <Button
+                        className="bg-purple-500/20 border border-purple-500 text-purple-400 hover:bg-purple-500/30"
+                        disabled={!loanAmount || loanAmount <= 0}
+                        onClick={async () => {
+                          try {
+                            await createLoanRequest({ amount: loanAmount } as any);
+                            toast.success("Loan request created");
+                            setLoanAmount(100);
+                          } catch (e) {
+                            toast.error(e instanceof Error ? e.message : "Failed to create loan request");
+                          }
+                        }}
+                      >
+                        Request Loan
+                      </Button>
+                    </div>
+
+                    {/* My loan requests */}
+                    <div className="mt-2 space-y-2">
+                      {(myLoanRequests || []).map((lr: any) => (
+                        <div key={lr._id} className="flex items-center justify-between p-3 bg-gray-900/40 rounded border border-gray-700">
+                          <div className="text-sm">
+                            <div className="text-cyan-400">Requested: {lr.amount} CR</div>
+                            <div className="text-xs text-gray-500 uppercase">Status: {lr.status}</div>
+                          </div>
+                          {lr.status === "pending" && (
+                            <Button
+                              variant="outline"
+                              className="border-red-500 text-red-500 hover:bg-red-500/10"
+                              onClick={async () => {
+                                try {
+                                  await cancelLoanRequest({ loanId: lr._id } as any);
+                                  toast.success("Loan request canceled");
+                                } catch (e) {
+                                  toast.error(e instanceof Error ? e.message : "Failed to cancel");
+                                }
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                      {myLoanRequests?.length === 0 && (
+                        <div className="text-xs text-gray-500">No loan requests yet</div>
+                      )}
+                    </div>
+                  </div>
 
                   {/* Lenders: view and fund pending requests */}
                   <div className="space-y-2">
