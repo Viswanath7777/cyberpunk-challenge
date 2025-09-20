@@ -10,7 +10,7 @@ export const createChallenge = mutation({
     title: v.string(),
     description: v.string(),
     xpReward: v.number(),
-    type: v.union(v.literal("daily"), v.literal("weekly")),
+    type: v.union(v.literal("daily"), v.literal("weekly"), v.literal("one-time")),
     durationHours: v.optional(v.number()),
   },
   handler: async (ctx, args) => {

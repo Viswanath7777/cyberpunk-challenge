@@ -87,7 +87,7 @@ export default function Dashboard() {
     title: "",
     description: "",
     xpReward: 50,
-    type: "daily" as "daily" | "weekly",
+    type: "daily" as "daily" | "weekly" | "one-time",
     durationHours: 24 as number | undefined,
   });
   const [creatingChallenge, setCreatingChallenge] = useState(false);
@@ -414,7 +414,7 @@ export default function Dashboard() {
                         <Label className="text-cyan-400">Type</Label>
                         <Select
                           value={newChallenge.type}
-                          onValueChange={(v) => setNewChallenge((p) => ({ ...p, type: v as "daily" | "weekly" }))}
+                          onValueChange={(v) => setNewChallenge((p) => ({ ...p, type: v as "daily" | "weekly" | "one-time" }))}
                         >
                           <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
                             <SelectValue placeholder="Type" />
@@ -422,6 +422,7 @@ export default function Dashboard() {
                           <SelectContent>
                             <SelectItem value="daily">Daily</SelectItem>
                             <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="one-time">One-time</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>

@@ -97,7 +97,7 @@ const schema = defineSchema(
       title: v.string(),
       description: v.string(),
       xpReward: v.number(),
-      type: v.union(v.literal("daily"), v.literal("weekly")),
+      type: v.union(v.literal("daily"), v.literal("weekly"), v.literal("one-time")),
       status: challengeStatusValidator,
       createdBy: v.id("users"), // Admin who created it
       expiresAt: v.optional(v.number()), // Timestamp when challenge expires
