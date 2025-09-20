@@ -375,7 +375,7 @@ export default function Dashboard() {
                   <DialogHeader>
                     <DialogTitle className="text-cyan-400">Create Challenge</DialogTitle>
                     <DialogDescription className="text-gray-400">
-                      Set a title, description, XP reward (for record), type, and optional duration.
+                      Set a title, description, credit reward, type, and optional duration.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-3">
@@ -401,7 +401,7 @@ export default function Dashboard() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
-                        <Label htmlFor="c-xp" className="text-cyan-400">XP Reward</Label>
+                        <Label htmlFor="c-xp" className="text-cyan-400">Credit Reward</Label>
                         <Input
                           id="c-xp"
                           type="number"
@@ -472,9 +472,9 @@ export default function Dashboard() {
                         </CardDescription>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <div className="flex items-center gap-1 text-yellow-400 text-sm">
-                          <Zap className="w-4 h-4" />
-                          {challenge.xpReward} XP
+                        <div className="flex items-center gap-1 text-green-400 text-sm">
+                          <Coins className="w-4 h-4" />
+                          {challenge.xpReward} CR
                         </div>
                         <div className="text-xs text-gray-500 uppercase">
                           {challenge.type}

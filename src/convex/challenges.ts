@@ -185,14 +185,16 @@ export const reviewSubmission = mutation({
       reviewedBy: user._id,
     });
 
-    // If approved, add XP to user
+    // If approved, award CREDITS to user (using xpReward as credit amount)
     if (args.approved) {
       const challenge = await ctx.db.get(submission.challengeId);
       if (challenge) {
-        await ctx.runMutation(api.characters.addXp, {
-          userId: submission.userId,
-          xpAmount: challenge.xpReward,
-        });
+        const targetUser = await ctx.db.get(submission.userId);
+        if (targetUser) {
+          const currentCredits = targetUser.credits ?? 0;
+          const creditReward = Math.floor(challenge.xpReward) || 0;
+          await ctx.db.patch(targetUser._id, { credits: currentCredits + creditReward });
+        }
       }
     }
 
