@@ -216,15 +216,23 @@ export const listMyChallenges = query({
 // New: creator/admin can view submissions for a challenge
 export const getSubmissionsForChallenge = query({
   args: {
-    challengeId: v.id("challenges"),
+    // Make challengeId optional to avoid validation errors when not selected
+    challengeId: v.optional(v.id("challenges")),
   },
   handler: async (ctx, args) => {
+    // If no challenge selected, return empty list
+    if (!args.challengeId) {
+      return [];
+    }
+    // Narrow optional arg to a definite Id for TypeScript
+    const challengeId = args.challengeId;
+
     const user = await getCurrentUser(ctx);
     if (!user) {
       throw new Error("Not authenticated");
     }
 
-    const challenge = await ctx.db.get(args.challengeId);
+    const challenge = await ctx.db.get(challengeId);
     if (!challenge) {
       throw new Error("Challenge not found");
     }
@@ -237,7 +245,7 @@ export const getSubmissionsForChallenge = query({
 
     const subs = await ctx.db
       .query("submissions")
-      .withIndex("by_challenge", (q) => q.eq("challengeId", args.challengeId))
+      .withIndex("by_challenge", (q) => q.eq("challengeId", challengeId))
       .collect();
 
     const withSubmitters = await Promise.all(
@@ -245,7 +253,9 @@ export const getSubmissionsForChallenge = query({
         const submitter = await ctx.db.get(s.userId);
         return {
           ...s,
-          submitter: submitter ? { _id: submitter._id, name: submitter.name ?? "Anonymous", characterName: submitter.characterName ?? "Unknown" } : null,
+          submitter: submitter
+            ? { _id: submitter._id, name: submitter.name ?? "Anonymous", characterName: submitter.characterName ?? "Unknown" }
+            : null,
         };
       })
     );
