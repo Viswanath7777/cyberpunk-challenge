@@ -113,7 +113,7 @@ export default function Dashboard() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/");
+    navigate("/auth");
   };
 
   const handleSubmitProof = async () => {
