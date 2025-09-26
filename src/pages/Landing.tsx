@@ -65,6 +65,17 @@ export default function Landing() {
                   >
                     Dashboard
                   </Button>
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      const { signOut } = useAuth();
+                      await signOut();
+                      navigate("/auth");
+                    }}
+                    className="border-red-500 text-red-500 hover:bg-red-500/10"
+                  >
+                    Logout
+                  </Button>
                 </div>
               ) : (
                 <Button
