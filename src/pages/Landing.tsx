@@ -5,7 +5,7 @@ import { Zap, Trophy, Target, Users, ArrowRight, Crown } from "lucide-react";
 import { useNavigate } from "react-router";
 
 export default function Landing() {
-  const { isLoading, isAuthenticated, user } = useAuth();
+  const { isLoading, isAuthenticated, user, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
@@ -68,7 +68,6 @@ export default function Landing() {
                   <Button
                     variant="outline"
                     onClick={async () => {
-                      const { signOut } = useAuth();
                       await signOut();
                       navigate("/auth");
                     }}
