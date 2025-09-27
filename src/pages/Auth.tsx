@@ -26,6 +26,7 @@ interface AuthProps {
 function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const { isLoading: authLoading, isAuthenticated, signIn } = useAuth();
   const navigate = useNavigate();
+  const convexUrl = (import.meta as any)?.env?.VITE_CONVEX_URL as string | undefined;
   const [step, setStep] = useState<"signIn" | { email: string }>("signIn");
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +57,13 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setError(null);
 
     try {
+      // Guard: Prevent attempts if Convex URL is not configured
+      if (!convexUrl) {
+        setError("Service unavailable: backend not configured. Please try again later or contact support.");
+        setIsLoading(false);
+        return;
+      }
+
       const trimmed = email.trim().toLowerCase();
       if (!isValidEmail(trimmed)) {
         setError("Please enter a valid email address (e.g., name@example.com).");
@@ -71,11 +79,8 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       setIsLoading(false);
     } catch (error) {
       console.error("Email sign-in error:", error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to send verification code. Please try again.",
-      );
+      // Friendlier message masking server internals
+      setError("Could not send the verification code. Please check your email and try again in a moment.");
       setIsLoading(false);
     }
   };
@@ -85,6 +90,13 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setIsLoading(true);
     setError(null);
     try {
+      // Guard: Prevent attempts if Convex URL is not configured
+      if (!convexUrl) {
+        setError("Service unavailable: backend not configured. Please try again later or contact support.");
+        setIsLoading(false);
+        return;
+      }
+
       // Ensure code is 6 digits
       const code = otp.trim();
       if (!/^\d{6}$/.test(code)) {
@@ -96,16 +108,12 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       const formData = new FormData(event.currentTarget);
       await signIn("email-otp", formData);
 
-      console.log("signed in");
-
       const redirect = redirectAfterAuth || "/";
       navigate(redirect);
     } catch (error) {
       console.error("OTP verification error:", error);
-
-      setError("The verification code you entered is incorrect.");
+      setError("The verification code you entered is incorrect or expired. Request a new code and try again.");
       setIsLoading(false);
-
       setOtp("");
     }
   };
@@ -162,7 +170,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                       type="submit"
                       variant="outline"
                       size="icon"
-                      disabled={isLoading || !email.trim() || !isValidEmail(email)}
+                      disabled={isLoading || !email.trim() || !isValidEmail(email) || !convexUrl}
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
