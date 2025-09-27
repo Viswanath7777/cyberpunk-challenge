@@ -30,6 +30,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [otp, setOtp] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+
+  const isValidEmail = (value: string) => {
+    const trimmed = value.trim();
+    // Basic RFC-ish email pattern; prevents common typos like missing TLD
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
+    return re.test(trimmed);
+  };
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -37,14 +45,25 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       navigate(redirect);
     }
   }, [authLoading, isAuthenticated, navigate, redirectAfterAuth]);
+
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
     setError(null);
+
     try {
-      const formData = new FormData(event.currentTarget);
+      const trimmed = email.trim().toLowerCase();
+      if (!isValidEmail(trimmed)) {
+        setError("Please enter a valid email address (e.g., name@example.com).");
+        setIsLoading(false);
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("email", trimmed);
+
       await signIn("email-otp", formData);
-      setStep({ email: formData.get("email") as string });
+      setStep({ email: trimmed });
       setIsLoading(false);
     } catch (error) {
       console.error("Email sign-in error:", error);
@@ -62,6 +81,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setIsLoading(true);
     setError(null);
     try {
+      // Ensure code is 6 digits
+      const code = otp.trim();
+      if (!/^\d{6}$/.test(code)) {
+        setError("Enter the 6‑digit code sent to your email.");
+        setIsLoading(false);
+        return;
+      }
+
       const formData = new FormData(event.currentTarget);
       await signIn("email-otp", formData);
 
@@ -76,23 +103,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       setIsLoading(false);
 
       setOtp("");
-    }
-  };
-
-  const handleGuestLogin = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      console.log("Attempting anonymous sign in...");
-      await signIn("anonymous");
-      console.log("Anonymous sign in successful");
-      const redirect = redirectAfterAuth || "/";
-      navigate(redirect);
-    } catch (error) {
-      console.error("Guest login error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
-      setError(`Failed to sign in as guest: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setIsLoading(false);
     }
   };
 
@@ -135,13 +145,20 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                         className="pl-9"
                         disabled={isLoading}
                         required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onBlur={() => {
+                          if (email && !isValidEmail(email)) {
+                            setError("Please enter a valid email address (e.g., name@example.com).");
+                          }
+                        }}
                       />
                     </div>
                     <Button
                       type="submit"
                       variant="outline"
                       size="icon"
-                      disabled={isLoading}
+                      disabled={isLoading || !email.trim() || !isValidEmail(email)}
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
