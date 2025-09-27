@@ -173,13 +173,23 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                             setError("Please enter a valid email address (e.g., name@example.com).");
                           }
                         }}
+                        // Submit form on Enter if valid
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !isLoading) {
+                            const form = (e.currentTarget as HTMLInputElement).form;
+                            if (form && isValidEmail(sanitizeEmail(email))) {
+                              e.preventDefault();
+                              form.requestSubmit();
+                            }
+                          }
+                        }}
                       />
                     </div>
                     <Button
                       type="submit"
                       variant="outline"
                       size="icon"
-                      disabled={isLoading || !email.trim() || !isValidEmail(email) || !convexUrl}
+                      disabled={isLoading || !email.trim() || !isValidEmail(sanitizeEmail(email)) || !convexUrl}
                     >
                       {isLoading ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
