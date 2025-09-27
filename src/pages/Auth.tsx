@@ -33,6 +33,16 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
 
+  // Add: sanitize helper for pasted emails (removes zero-width & unicode spaces)
+  const sanitizeEmail = (raw: string) => {
+    return raw
+      .replace(/[\u200B-\u200D\uFEFF]/g, "") // zero-width chars
+      .replace(/[\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]/g, " ") // unicode spaces -> normal space
+      .replace(/\s+/g, " ") // collapse spaces
+      .trim()
+      .toLowerCase();
+  };
+
   const isValidEmail = (value: string) => {
     const trimmed = value.trim();
     // Basic RFC-ish email pattern; prevents common typos like missing TLD
@@ -57,14 +67,14 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     setError(null);
 
     try {
-      // Guard: Prevent attempts if Convex URL is not configured
       if (!convexUrl) {
         setError("Service unavailable: backend not configured. Please try again later or contact support.");
         setIsLoading(false);
         return;
       }
 
-      const trimmed = email.trim().toLowerCase();
+      // Use sanitized email
+      const trimmed = sanitizeEmail(email);
       if (!isValidEmail(trimmed)) {
         setError("Please enter a valid email address (e.g., name@example.com).");
         setIsLoading(false);
@@ -79,7 +89,6 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
       setIsLoading(false);
     } catch (error) {
       console.error("Email sign-in error:", error);
-      // Friendlier message masking server internals
       setError("Could not send the verification code. Please check your email and try again in a moment.");
       setIsLoading(false);
     }
@@ -158,9 +167,9 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                         disabled={isLoading}
                         required
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setEmail(sanitizeEmail(e.target.value))}
                         onBlur={() => {
-                          if (email && !isValidEmail(email)) {
+                          if (email && !isValidEmail(sanitizeEmail(email))) {
                             setError("Please enter a valid email address (e.g., name@example.com).");
                           }
                         }}
