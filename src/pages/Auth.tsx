@@ -46,6 +46,10 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
     }
   }, [authLoading, isAuthenticated, navigate, redirectAfterAuth]);
 
+  const handleGuestLogin = () => {
+    setError("Guest login is currently unavailable. Please sign in with your email.");
+  };
+
   const handleEmailSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
