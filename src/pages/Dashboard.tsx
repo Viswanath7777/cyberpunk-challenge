@@ -1123,6 +1123,18 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="casino" className="space-y-6">
+            {/* Card Ranking Info */}
+            <Card className="bg-gray-900/50 border-cyan-400/30">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  <span className="text-cyan-400 font-bold">Card Ranking:</span>
+                  <span className="text-gray-300">
+                    Ace (lowest) → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10 → Jack → Queen → King (highest)
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
