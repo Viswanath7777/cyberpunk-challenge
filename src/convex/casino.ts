@@ -2,7 +2,13 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./users";
 
-// Blackjack card values
+// Card values for ranking (Ace=1, 2-9=face, 10=10, J=11, Q=12, K=13)
+const CARD_RANKS: Record<string, number> = {
+  "A": 1, "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, 
+  "10": 10, "J": 11, "Q": 12, "K": 13
+};
+
+// Blackjack card values (for calculating hand totals)
 const CARD_VALUES: Record<string, number> = {
   "2": 2, "3": 3, "4": 4, "5": 5, "6": 6, "7": 7, "8": 8, "9": 9, "10": 10,
   "J": 10, "Q": 10, "K": 10, "A": 11
@@ -370,14 +376,14 @@ export const highLowGuess = mutation({
     // Draw next card
     const nextCard = deck.pop();
     
-    const currentValue = CARD_VALUES[currentCard.rank];
-    const nextValue = CARD_VALUES[nextCard.rank];
+    const currentRank = CARD_RANKS[currentCard.rank];
+    const nextRank = CARD_RANKS[nextCard.rank];
     
     let correct = false;
     if (args.guess === "higher") {
-      correct = nextValue > currentValue;
+      correct = nextRank > currentRank;
     } else {
-      correct = nextValue < currentValue;
+      correct = nextRank < currentRank;
     }
     
     if (correct) {
