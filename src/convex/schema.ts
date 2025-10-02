@@ -159,6 +159,21 @@ const schema = defineSchema(
       .index("by_status", ["status"])
       .index("by_borrower", ["borrowerId"])
       .index("by_lender", ["lenderId"]),
+
+    // Casino games table
+    casinoGames: defineTable({
+      userId: v.id("users"),
+      gameType: v.union(v.literal("blackjack"), v.literal("slots")),
+      betAmount: v.number(),
+      payout: v.number(),
+      status: v.union(v.literal("in_progress"), v.literal("completed")),
+      gameData: v.any(),
+      result: v.optional(v.string()),
+      startedAt: v.number(),
+      completedAt: v.optional(v.number()),
+    })
+      .index("by_user", ["userId"])
+      .index("by_user_and_status", ["userId", "status"]),
   },
   {
     schemaValidation: false,

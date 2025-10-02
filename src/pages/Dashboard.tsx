@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { motion } from "framer-motion";
-import { Trophy, Zap, Target, Crown, LogOut, Settings, Coins, Plus } from "lucide-react";
+import { Trophy, Zap, Target, Crown, LogOut, Settings, Coins, Plus, Gamepad2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Blackjack } from "@/components/Blackjack";
+import { Slots } from "@/components/Slots";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -356,6 +358,10 @@ export default function Dashboard() {
             </TabsTrigger>
             <TabsTrigger value="bets" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
               💱 Bets
+            </TabsTrigger>
+            <TabsTrigger value="casino" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+              <Gamepad2 className="w-4 h-4 mr-2" />
+              Casino
             </TabsTrigger>
           </TabsList>
 
@@ -1111,6 +1117,29 @@ export default function Dashboard() {
                 </CardContent>
               </Card>
             </motion.div>
+          </TabsContent>
+
+          <TabsContent value="casino" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid gap-6 md:grid-cols-2"
+            >
+              <Blackjack credits={character.credits} />
+              <Slots credits={character.credits} />
+            </motion.div>
+
+            {/* Game History */}
+            <Card className="bg-gray-900/50 border-purple-500/30">
+              <CardHeader>
+                <CardTitle className="text-purple-400">Recent Games</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8 text-gray-400 text-sm">
+                  Game history coming soon...
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>

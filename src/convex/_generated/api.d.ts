@@ -17,6 +17,7 @@ import type * as admin from "../admin.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as auth from "../auth.js";
 import type * as bets from "../bets.js";
+import type * as casino from "../casino.js";
 import type * as challenges from "../challenges.js";
 import type * as characters from "../characters.js";
 import type * as http from "../http.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   "auth/emailOtp": typeof auth_emailOtp;
   auth: typeof auth;
   bets: typeof bets;
+  casino: typeof casino;
   challenges: typeof challenges;
   characters: typeof characters;
   http: typeof http;
