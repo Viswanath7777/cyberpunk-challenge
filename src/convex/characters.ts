@@ -83,6 +83,33 @@ export const addXp = mutation({
   },
 });
 
+// Update character name
+export const updateCharacterName = mutation({
+  args: {
+    newCharacterName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) {
+      throw new Error("Not authenticated");
+    }
+
+    if (!args.newCharacterName.trim()) {
+      throw new Error("Character name cannot be empty");
+    }
+
+    if (args.newCharacterName.length > 20) {
+      throw new Error("Character name must be 20 characters or less");
+    }
+
+    await ctx.db.patch(user._id, {
+      characterName: args.newCharacterName.trim(),
+    });
+
+    return { success: true };
+  },
+});
+
 // Get leaderboard
 export const getLeaderboard = query({
   args: {},

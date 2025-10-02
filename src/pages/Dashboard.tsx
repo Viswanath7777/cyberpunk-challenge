@@ -33,6 +33,9 @@ export default function Dashboard() {
   // Add missing submitProof mutation
   const submitProof = useMutation(api.challenges.submitProof);
 
+  // Add username update mutation
+  const updateCharacterName = useMutation(api.characters.updateCharacterName);
+
   // Betting queries/mutations
   const openEvents = useQuery(api.bets.listOpenEvents) as any[] | undefined;
   const myBets = useQuery(api.bets.getMyBets) as any[] | undefined;
@@ -86,6 +89,10 @@ export default function Dashboard() {
 
   // Add local state for loan amount input
   const [loanAmount, setLoanAmount] = useState<number>(100);
+
+  // Add state for username change
+  const [newUsername, setNewUsername] = useState("");
+  const [isChangingUsername, setIsChangingUsername] = useState(false);
 
   // New challenge creation state
   const [newChallenge, setNewChallenge] = useState({
@@ -285,6 +292,24 @@ export default function Dashboard() {
     }
   };
 
+  const handleUpdateUsername = async () => {
+    if (!newUsername.trim()) {
+      toast.error("Please enter a new username");
+      return;
+    }
+
+    setIsChangingUsername(true);
+    try {
+      await updateCharacterName({ newCharacterName: newUsername.trim() });
+      toast.success("Username updated successfully!");
+      setNewUsername("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update username");
+    } finally {
+      setIsChangingUsername(false);
+    }
+  };
+
   if (!character) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -313,9 +338,46 @@ export default function Dashboard() {
             <div className="text-2xl font-bold text-cyan-400 glitch-text">
               CYBER_CLASS
             </div>
-            <div className="text-sm text-green-400">
-              [{character.characterName}]
-            </div>
+            <Dialog>
+              <DialogTrigger asChild>
+                <button className="text-sm text-green-400 hover:text-green-300 transition-colors">
+                  [{character.characterName}]
+                </button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-900 border-cyan-400/30">
+                <DialogHeader>
+                  <DialogTitle className="text-cyan-400">Change Username</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Update your character name (max 20 characters)
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="newUsername" className="text-cyan-400">New Username</Label>
+                    <Input
+                      id="newUsername"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                      placeholder={character.characterName}
+                      maxLength={20}
+                      className="bg-gray-800 border-gray-600 text-white"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !isChangingUsername) {
+                          handleUpdateUsername();
+                        }
+                      }}
+                    />
+                  </div>
+                  <Button
+                    onClick={handleUpdateUsername}
+                    disabled={isChangingUsername || !newUsername.trim()}
+                    className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                  >
+                    {isChangingUsername ? "Updating..." : "Update Username"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
           
           <div className="flex items-center gap-4">
