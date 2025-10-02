@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Blackjack } from "@/components/Blackjack";
 import { Slots } from "@/components/Slots";
 import { HighLow } from "@/components/HighLow";
+import { MultiplayerHighLow } from "@/components/MultiplayerHighLow";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -1129,6 +1130,7 @@ export default function Dashboard() {
               <Blackjack credits={character.credits} />
               <Slots credits={character.credits} />
               <HighLow credits={character.credits} />
+              <MultiplayerHighLow credits={character.credits} />
             </motion.div>
 
             {/* Game History */}

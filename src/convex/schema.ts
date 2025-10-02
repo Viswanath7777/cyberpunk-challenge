@@ -174,6 +174,37 @@ const schema = defineSchema(
     })
       .index("by_user", ["userId"])
       .index("by_user_and_status", ["userId", "status"]),
+
+    // Multiplayer High-Low games table
+    multiplayerHighLow: defineTable({
+      player1Id: v.id("users"),
+      player2Id: v.optional(v.id("users")),
+      betAmount: v.number(),
+      status: v.union(
+        v.literal("waiting"),
+        v.literal("in_progress"),
+        v.literal("completed")
+      ),
+      currentTurn: v.optional(v.union(v.literal("player1"), v.literal("player2"))),
+      deck: v.array(v.object({ rank: v.string(), suit: v.string() })),
+      currentCard: v.object({ rank: v.string(), suit: v.string() }),
+      player1Data: v.object({
+        streak: v.number(),
+        multiplier: v.number(),
+        cashedOut: v.boolean(),
+      }),
+      player2Data: v.optional(v.object({
+        streak: v.number(),
+        multiplier: v.number(),
+        cashedOut: v.boolean(),
+      })),
+      winnerId: v.optional(v.id("users")),
+      createdAt: v.number(),
+      completedAt: v.optional(v.number()),
+    })
+      .index("by_status", ["status"])
+      .index("by_player1", ["player1Id"])
+      .index("by_player2", ["player2Id"]),
   },
   {
     schemaValidation: false,

@@ -22,6 +22,7 @@ import type * as challenges from "../challenges.js";
 import type * as characters from "../characters.js";
 import type * as http from "../http.js";
 import type * as loans from "../loans.js";
+import type * as multiplayerHighLow from "../multiplayerHighLow.js";
 import type * as users from "../users.js";
 
 /**
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   characters: typeof characters;
   http: typeof http;
   loans: typeof loans;
+  multiplayerHighLow: typeof multiplayerHighLow;
   users: typeof users;
 }>;
 export declare const api: FilterApi<
