@@ -19,6 +19,7 @@ import { Blackjack } from "@/components/Blackjack";
 import { Slots } from "@/components/Slots";
 import { HighLow } from "@/components/HighLow";
 import { MultiplayerHighLow } from "@/components/MultiplayerHighLow";
+import { Roulette } from "@/components/Roulette";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();

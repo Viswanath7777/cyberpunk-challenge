@@ -28,6 +28,23 @@ const SLOT_PAYOUTS: Record<string, number> = {
   "🍒": 1.5,
 };
 
+// Roulette numbers and colors
+const ROULETTE_NUMBERS = [
+  { number: 0, color: "green" },
+  { number: 1, color: "red" }, { number: 2, color: "black" }, { number: 3, color: "red" },
+  { number: 4, color: "black" }, { number: 5, color: "red" }, { number: 6, color: "black" },
+  { number: 7, color: "red" }, { number: 8, color: "black" }, { number: 9, color: "red" },
+  { number: 10, color: "black" }, { number: 11, color: "black" }, { number: 12, color: "red" },
+  { number: 13, color: "black" }, { number: 14, color: "red" }, { number: 15, color: "black" },
+  { number: 16, color: "red" }, { number: 17, color: "black" }, { number: 18, color: "red" },
+  { number: 19, color: "red" }, { number: 20, color: "black" }, { number: 21, color: "red" },
+  { number: 22, color: "black" }, { number: 23, color: "red" }, { number: 24, color: "black" },
+  { number: 25, color: "red" }, { number: 26, color: "black" }, { number: 27, color: "red" },
+  { number: 28, color: "black" }, { number: 29, color: "black" }, { number: 30, color: "red" },
+  { number: 31, color: "black" }, { number: 32, color: "red" }, { number: 33, color: "black" },
+  { number: 34, color: "red" }, { number: 35, color: "black" }, { number: 36, color: "red" },
+];
+
 function createDeck() {
   const deck = [];
   for (const suit of SUITS) {
@@ -559,6 +576,127 @@ export const spinSlots = mutation({
     });
     
     return { gameId, reels, result, payout };
+  },
+});
+
+// Roulette: Spin the wheel
+export const spinRoulette = mutation({
+  args: { 
+    betAmount: v.number(),
+    betType: v.string(), // "number", "red", "black", "even", "odd", "1-18", "19-36", "dozen1", "dozen2", "dozen3"
+    betValue: v.optional(v.number()), // specific number if betting on a number
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+    
+    const isAdmin = user.role === "admin";
+    const actualBetAmount = isAdmin && args.betAmount === 0 ? 0 : args.betAmount;
+    
+    if (!isAdmin && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
+    
+    const credits = user.credits ?? 1000;
+    if (!isAdmin && credits < actualBetAmount) throw new Error("Insufficient credits");
+    
+    // Deduct bet (skip for admin with 0 bet)
+    if (!(isAdmin && actualBetAmount === 0)) {
+      await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
+    }
+    
+    // Spin the wheel - admin always wins their bet
+    let winningNumber;
+    if (isAdmin) {
+      // Admin wins: match their bet type
+      if (args.betType === "number" && args.betValue !== undefined) {
+        winningNumber = args.betValue;
+      } else if (args.betType === "red") {
+        winningNumber = 1; // red number
+      } else if (args.betType === "black") {
+        winningNumber = 2; // black number
+      } else if (args.betType === "even") {
+        winningNumber = 2;
+      } else if (args.betType === "odd") {
+        winningNumber = 1;
+      } else if (args.betType === "1-18") {
+        winningNumber = 10;
+      } else if (args.betType === "19-36") {
+        winningNumber = 25;
+      } else if (args.betType === "dozen1") {
+        winningNumber = 5;
+      } else if (args.betType === "dozen2") {
+        winningNumber = 15;
+      } else if (args.betType === "dozen3") {
+        winningNumber = 30;
+      } else {
+        winningNumber = 1;
+      }
+    } else {
+      winningNumber = Math.floor(Math.random() * 37); // 0-36
+    }
+    
+    const winningSlot = ROULETTE_NUMBERS.find(n => n.number === winningNumber)!;
+    
+    // Check if bet wins
+    let isWin = false;
+    let multiplier = 0;
+    
+    if (args.betType === "number" && args.betValue === winningNumber) {
+      isWin = true;
+      multiplier = 35; // 35:1 payout
+    } else if (args.betType === "red" && winningSlot.color === "red") {
+      isWin = true;
+      multiplier = 2; // 1:1 payout
+    } else if (args.betType === "black" && winningSlot.color === "black") {
+      isWin = true;
+      multiplier = 2;
+    } else if (args.betType === "even" && winningNumber > 0 && winningNumber % 2 === 0) {
+      isWin = true;
+      multiplier = 2;
+    } else if (args.betType === "odd" && winningNumber % 2 === 1) {
+      isWin = true;
+      multiplier = 2;
+    } else if (args.betType === "1-18" && winningNumber >= 1 && winningNumber <= 18) {
+      isWin = true;
+      multiplier = 2;
+    } else if (args.betType === "19-36" && winningNumber >= 19 && winningNumber <= 36) {
+      isWin = true;
+      multiplier = 2;
+    } else if (args.betType === "dozen1" && winningNumber >= 1 && winningNumber <= 12) {
+      isWin = true;
+      multiplier = 3; // 2:1 payout
+    } else if (args.betType === "dozen2" && winningNumber >= 13 && winningNumber <= 24) {
+      isWin = true;
+      multiplier = 3;
+    } else if (args.betType === "dozen3" && winningNumber >= 25 && winningNumber <= 36) {
+      isWin = true;
+      multiplier = 3;
+    }
+    
+    const payout = isWin ? Math.floor(actualBetAmount * multiplier) : 0;
+    const result = isWin ? "win" : "loss";
+    
+    // Update credits
+    const currentCredits = user.credits ?? 1000;
+    await ctx.db.patch(user._id, { credits: currentCredits - actualBetAmount + payout });
+    
+    const gameId = await ctx.db.insert("casinoGames", {
+      userId: user._id,
+      gameType: "roulette",
+      betAmount: actualBetAmount,
+      payout,
+      status: "completed",
+      gameData: { 
+        winningNumber, 
+        winningColor: winningSlot.color,
+        betType: args.betType,
+        betValue: args.betValue,
+      },
+      result,
+      startedAt: Date.now(),
+      completedAt: Date.now(),
+    });
+    
+    return { gameId, winningNumber, winningColor: winningSlot.color, result, payout };
   },
 });
 
