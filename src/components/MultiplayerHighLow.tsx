@@ -28,14 +28,19 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
     currentGameId ? { gameId: currentGameId } : "skip"
   );
 
+  // Get user to check admin status
+  const user = useQuery(api.users.currentUser);
+  const isAdmin = user?.role === "admin";
+
   const handleStartGame = async () => {
-    if (betAmount <= 0 || betAmount > credits) {
+    // Admin can play with 0 bet
+    if (!isAdmin && (betAmount <= 0 || betAmount > credits)) {
       toast.error("Invalid bet amount");
       return;
     }
 
     try {
-      const result = await createOrJoin({ betAmount });
+      const result = await createOrJoin({ betAmount: isAdmin && betAmount === 0 ? 0 : betAmount });
       setCurrentGameId(result.gameId);
       
       if (result.joined) {
@@ -285,7 +290,7 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
             type="number"
             value={betAmount}
             onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
-            min={1}
+            min={isAdmin ? 0 : 1}
             max={credits}
             className="bg-gray-800 border-gray-600 text-white"
           />
@@ -293,7 +298,7 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
 
         <Button
           onClick={handleStartGame}
-          disabled={betAmount <= 0 || betAmount > credits}
+          disabled={!isAdmin && (betAmount <= 0 || betAmount > credits)}
           className="w-full bg-purple-500/20 border border-purple-500 text-purple-400 hover:bg-purple-500/30"
         >
           <Users className="w-4 h-4 mr-2" />
@@ -302,6 +307,7 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
 
         <div className="text-xs text-center text-gray-500">
           Available Credits: {credits} CR
+          {isAdmin && <span className="ml-2 text-pink-400">• Admin Mode</span>}
         </div>
       </CardContent>
     </Card>
