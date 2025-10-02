@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { motion } from "framer-motion";
-import { Plus, Check, X, ArrowLeft, Crown, Zap } from "lucide-react";
+import { Plus, Check, X, ArrowLeft, Crown, Zap, Users } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -26,6 +26,8 @@ export default function Admin() {
   const createBetEvent = useMutation(api.bets.createEvent);
   const closeBetEvent = useMutation(api.bets.closeEvent);
   const resolveBetEvent = useMutation(api.bets.resolveEvent);
+  const allUsers = useQuery(api.admin.getAllUsers);
+  const makeAdminById = useMutation(api.admin.makeAdminById);
 
   const [isCreating, setIsCreating] = useState(false);
   const [newChallenge, setNewChallenge] = useState({
@@ -160,6 +162,15 @@ export default function Admin() {
     }
   };
 
+  const handleMakeAdmin = async (userId: string) => {
+    try {
+      const result = await makeAdminById({ userId: userId as any });
+      toast.success(`${result.userName} is now an admin!`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to make user admin");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-cyan-400 font-mono">
       {/* Cyberpunk grid background */}
@@ -202,6 +213,59 @@ export default function Admin() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 relative space-y-8">
+        {/* User Management Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="bg-gray-900/50 border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="text-purple-400 flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                User Management
+              </CardTitle>
+              <CardDescription className="text-gray-400">
+                Promote users to admin status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {allUsers?.map((u) => (
+                  <div key={u._id} className="flex justify-between items-center p-3 bg-gray-800/30 rounded border border-gray-700">
+                    <div>
+                      <span className="text-cyan-400 font-medium">
+                        {u.characterName || u.name || "Unknown User"}
+                      </span>
+                      {u.email && (
+                        <span className="text-xs text-gray-500 ml-2">({u.email})</span>
+                      )}
+                      <div className="text-xs text-gray-500 mt-1">
+                        Credits: {u.credits} | Level: {u.level}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {u.role === "admin" ? (
+                        <span className="px-3 py-1 rounded text-xs bg-yellow-400/20 text-yellow-400 border border-yellow-400">
+                          <Crown className="w-3 h-3 inline mr-1" />
+                          Admin
+                        </span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => handleMakeAdmin(u._id)}
+                          className="bg-purple-500/20 border border-purple-500 text-purple-400 hover:bg-purple-500/30"
+                        >
+                          Make Admin
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Create Challenge Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
