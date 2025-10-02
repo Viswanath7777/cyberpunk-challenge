@@ -286,6 +286,179 @@ export const blackjackDouble = mutation({
   },
 });
 
+// High-Low game: Start a new game
+export const startHighLow = mutation({
+  args: { betAmount: v.number() },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+    
+    if (args.betAmount <= 0) throw new Error("Bet must be greater than 0");
+    
+    const credits = user.credits ?? 1000;
+    if (credits < args.betAmount) throw new Error("Insufficient credits");
+    
+    // Deduct bet
+    await ctx.db.patch(user._id, { credits: credits - args.betAmount });
+    
+    // Create and shuffle deck
+    const deck = shuffleDeck(createDeck());
+    
+    // Draw first card
+    const currentCard = deck.pop();
+    
+    const gameId = await ctx.db.insert("casinoGames", {
+      userId: user._id,
+      gameType: "highlow",
+      betAmount: args.betAmount,
+      payout: 0,
+      status: "in_progress",
+      gameData: {
+        deck,
+        currentCard,
+        streak: 0,
+        multiplier: 1,
+      },
+      startedAt: Date.now(),
+    });
+    
+    return { gameId, currentCard, streak: 0, multiplier: 1 };
+  },
+});
+
+// High-Low: Make a guess (higher or lower)
+export const highLowGuess = mutation({
+  args: { 
+    gameId: v.id("casinoGames"),
+    guess: v.union(v.literal("higher"), v.literal("lower"))
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+    
+    const game = await ctx.db.get(args.gameId);
+    if (!game) throw new Error("Game not found");
+    if (game.userId !== user._id) throw new Error("Not your game");
+    if (game.status !== "in_progress") throw new Error("Game already completed");
+    
+    const { deck, currentCard, streak, multiplier } = game.gameData;
+    
+    if (deck.length === 0) {
+      // No more cards, cash out
+      const payout = Math.floor(game.betAmount * multiplier);
+      const currentCredits = user.credits ?? 1000;
+      await ctx.db.patch(user._id, { credits: currentCredits + payout });
+      
+      await ctx.db.patch(args.gameId, {
+        status: "completed",
+        result: "win",
+        payout,
+        completedAt: Date.now(),
+      });
+      
+      return { 
+        correct: true, 
+        nextCard: null, 
+        streak, 
+        multiplier, 
+        gameOver: true, 
+        result: "win",
+        payout 
+      };
+    }
+    
+    // Draw next card
+    const nextCard = deck.pop();
+    
+    const currentValue = CARD_VALUES[currentCard.rank];
+    const nextValue = CARD_VALUES[nextCard.rank];
+    
+    let correct = false;
+    if (args.guess === "higher") {
+      correct = nextValue > currentValue;
+    } else {
+      correct = nextValue < currentValue;
+    }
+    
+    if (correct) {
+      // Correct guess - increase streak and multiplier
+      const newStreak = streak + 1;
+      const newMultiplier = 1 + (newStreak * 0.2); // +20% per correct guess
+      
+      await ctx.db.patch(args.gameId, {
+        gameData: {
+          deck,
+          currentCard: nextCard,
+          streak: newStreak,
+          multiplier: newMultiplier,
+        },
+      });
+      
+      return { 
+        correct: true, 
+        nextCard, 
+        streak: newStreak, 
+        multiplier: newMultiplier,
+        gameOver: false 
+      };
+    } else {
+      // Wrong guess - game over, lose bet
+      await ctx.db.patch(args.gameId, {
+        status: "completed",
+        result: "loss",
+        payout: 0,
+        gameData: {
+          deck,
+          currentCard: nextCard,
+          streak,
+          multiplier,
+        },
+        completedAt: Date.now(),
+      });
+      
+      return { 
+        correct: false, 
+        nextCard, 
+        streak, 
+        multiplier,
+        gameOver: true,
+        result: "loss",
+        payout: 0
+      };
+    }
+  },
+});
+
+// High-Low: Cash out current winnings
+export const highLowCashOut = mutation({
+  args: { gameId: v.id("casinoGames") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+    
+    const game = await ctx.db.get(args.gameId);
+    if (!game) throw new Error("Game not found");
+    if (game.userId !== user._id) throw new Error("Not your game");
+    if (game.status !== "in_progress") throw new Error("Game already completed");
+    
+    const { multiplier } = game.gameData;
+    const payout = Math.floor(game.betAmount * multiplier);
+    
+    // Add winnings to credits
+    const currentCredits = user.credits ?? 1000;
+    await ctx.db.patch(user._id, { credits: currentCredits + payout });
+    
+    await ctx.db.patch(args.gameId, {
+      status: "completed",
+      result: "win",
+      payout,
+      completedAt: Date.now(),
+    });
+    
+    return { payout, multiplier };
+  },
+});
+
 // Spin slots
 export const spinSlots = mutation({
   args: { betAmount: v.number() },

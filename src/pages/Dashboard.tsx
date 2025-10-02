@@ -17,6 +17,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Blackjack } from "@/components/Blackjack";
 import { Slots } from "@/components/Slots";
+import { HighLow } from "@/components/HighLow";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -1123,10 +1124,11 @@ export default function Dashboard() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid gap-6 md:grid-cols-2"
+              className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
             >
               <Blackjack credits={character.credits} />
               <Slots credits={character.credits} />
+              <HighLow credits={character.credits} />
             </motion.div>
 
             {/* Game History */}
