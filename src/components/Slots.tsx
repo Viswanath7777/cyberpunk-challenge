@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +15,12 @@ export function Slots({ credits }: { credits: number }) {
   const [spinning, setSpinning] = useState(false);
 
   const spin = useMutation(api.casino.spinSlots);
+  const user = useQuery(api.users.currentUser);
+  const isAdmin = user?.role === "admin";
 
   const handleSpin = async () => {
-    if (betAmount <= 0 || betAmount > credits) {
+    // Admin can play with 0 bet
+    if (!isAdmin && (betAmount <= 0 || betAmount > credits)) {
       toast.error("Invalid bet amount");
       return;
     }
@@ -39,7 +42,7 @@ export function Slots({ credits }: { credits: number }) {
     }
 
     try {
-      const result = await spin({ betAmount });
+      const result = await spin({ betAmount: isAdmin && betAmount === 0 ? 0 : betAmount });
       setReels(result.reels);
 
       if (result.result === "win") {
@@ -57,7 +60,10 @@ export function Slots({ credits }: { credits: number }) {
   return (
     <Card className="bg-gray-900/50 border-pink-500/30">
       <CardHeader>
-        <CardTitle className="text-pink-400 text-2xl">🎰 Cyber Slots 🎰</CardTitle>
+        <CardTitle className="text-pink-400 text-2xl">
+          🎰 Cyber Slots 🎰
+          {isAdmin && <span className="ml-2 text-xs text-cyan-400">Admin Mode</span>}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Slot machine display */}
@@ -78,7 +84,7 @@ export function Slots({ credits }: { credits: number }) {
           <div className="flex items-center gap-4 justify-center">
             <Input
               type="number"
-              min={1}
+              min={isAdmin ? 0 : 1}
               max={credits}
               value={betAmount}
               onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
@@ -88,7 +94,7 @@ export function Slots({ credits }: { credits: number }) {
             />
             <Button
               onClick={handleSpin}
-              disabled={spinning || betAmount <= 0 || betAmount > credits}
+              disabled={spinning || (!isAdmin && (betAmount <= 0 || betAmount > credits))}
               className="bg-pink-500/20 border border-pink-500 text-pink-400 hover:bg-pink-500/30 px-8"
             >
               {spinning ? "SPINNING..." : "SPIN"}
@@ -125,6 +131,11 @@ export function Slots({ credits }: { credits: number }) {
               <span className="text-green-400">1.5x</span>
             </div>
           </div>
+          {isAdmin && (
+            <div className="mt-2 text-xs text-pink-400 text-center">
+              Admin always gets 7️⃣7️⃣7️⃣
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

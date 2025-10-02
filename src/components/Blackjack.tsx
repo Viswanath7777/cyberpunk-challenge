@@ -23,14 +23,19 @@ export function Blackjack({ credits }: { credits: number }) {
   const stand = useMutation(api.casino.blackjackStand);
   const doubleDown = useMutation(api.casino.blackjackDouble);
 
+  // Get user to check admin status
+  const user = useQuery(api.users.currentUser);
+  const isAdmin = user?.role === "admin";
+
   const handleStart = async () => {
-    if (betAmount <= 0 || betAmount > credits) {
+    // Admin can play with 0 bet
+    if (!isAdmin && (betAmount <= 0 || betAmount > credits)) {
       toast.error("Invalid bet amount");
       return;
     }
 
     try {
-      const result = await startGame({ betAmount });
+      const result = await startGame({ betAmount: isAdmin && betAmount === 0 ? 0 : betAmount });
       setGameId(result.gameId);
       setPlayerHand(result.playerHand);
       setDealerHand(result.dealerHand);
@@ -143,7 +148,10 @@ export function Blackjack({ credits }: { credits: number }) {
   return (
     <Card className="bg-gray-900/50 border-cyan-400/30">
       <CardHeader>
-        <CardTitle className="text-cyan-400 text-2xl">♠️ Blackjack ♥️</CardTitle>
+        <CardTitle className="text-cyan-400 text-2xl">
+          ♠️ Blackjack ♥️
+          {isAdmin && <span className="ml-2 text-xs text-pink-400">Admin Mode</span>}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {gameStatus === "idle" && (
@@ -151,7 +159,7 @@ export function Blackjack({ credits }: { credits: number }) {
             <div className="flex items-center gap-4">
               <Input
                 type="number"
-                min={1}
+                min={isAdmin ? 0 : 1}
                 max={credits}
                 value={betAmount}
                 onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
@@ -160,7 +168,7 @@ export function Blackjack({ credits }: { credits: number }) {
               />
               <Button
                 onClick={handleStart}
-                disabled={betAmount <= 0 || betAmount > credits}
+                disabled={!isAdmin && (betAmount <= 0 || betAmount > credits)}
                 className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
               >
                 Deal Cards
@@ -168,6 +176,7 @@ export function Blackjack({ credits }: { credits: number }) {
             </div>
             <div className="text-sm text-gray-400">
               Blackjack pays 3:2 • Dealer stands on 17
+              {isAdmin && <span className="ml-2 text-pink-400">• Admin always wins</span>}
             </div>
           </div>
         )}

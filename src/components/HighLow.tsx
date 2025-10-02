@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,14 +23,19 @@ export function HighLow({ credits }: { credits: number }) {
   const makeGuess = useMutation(api.casino.highLowGuess);
   const cashOut = useMutation(api.casino.highLowCashOut);
 
+  // Get user to check admin status
+  const user = useQuery(api.users.currentUser);
+  const isAdmin = user?.role === "admin";
+
   const handleStart = async () => {
-    if (betAmount <= 0 || betAmount > credits) {
+    // Admin can play with 0 bet
+    if (!isAdmin && (betAmount <= 0 || betAmount > credits)) {
       toast.error("Invalid bet amount");
       return;
     }
 
     try {
-      const result = await startGame({ betAmount });
+      const result = await startGame({ betAmount: isAdmin && betAmount === 0 ? 0 : betAmount });
       setGameId(result.gameId);
       setCurrentCard(result.currentCard);
       setStreak(result.streak);
@@ -122,7 +127,10 @@ export function HighLow({ credits }: { credits: number }) {
   return (
     <Card className="bg-gray-900/50 border-cyan-400/30">
       <CardHeader>
-        <CardTitle className="text-cyan-400 text-2xl">🎴 High-Low 🎴</CardTitle>
+        <CardTitle className="text-cyan-400 text-2xl">
+          🎴 High-Low 🎴
+          {isAdmin && <span className="ml-2 text-xs text-pink-400">Admin Mode</span>}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
         {gameStatus === "idle" && (
@@ -130,7 +138,7 @@ export function HighLow({ credits }: { credits: number }) {
             <div className="flex items-center gap-4">
               <Input
                 type="number"
-                min={1}
+                min={isAdmin ? 0 : 1}
                 max={credits}
                 value={betAmount}
                 onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
@@ -139,7 +147,7 @@ export function HighLow({ credits }: { credits: number }) {
               />
               <Button
                 onClick={handleStart}
-                disabled={betAmount <= 0 || betAmount > credits}
+                disabled={!isAdmin && (betAmount <= 0 || betAmount > credits)}
                 className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
               >
                 Start Game
@@ -147,6 +155,7 @@ export function HighLow({ credits }: { credits: number }) {
             </div>
             <div className="text-sm text-gray-400">
               Guess if the next card is higher or lower • Build your streak for bigger multipliers!
+              {isAdmin && <span className="ml-2 text-pink-400">• Admin always guesses correctly</span>}
             </div>
           </div>
         )}
