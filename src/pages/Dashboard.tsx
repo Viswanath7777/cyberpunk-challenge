@@ -1132,6 +1132,7 @@ export default function Dashboard() {
               <Slots credits={character.credits} />
               <HighLow credits={character.credits} />
               <MultiplayerHighLow credits={character.credits} />
+              <Roulette credits={character.credits} />
             </motion.div>
 
             {/* Game History */}
