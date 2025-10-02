@@ -1,47 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { Users, Trophy, Zap } from "lucide-react";
-import { Id } from "@/convex/_generated/dataModel";
+import { toast } from "sonner";
+import type { Id } from "@/convex/_generated/dataModel";
+import { ArrowUp, ArrowDown, DollarSign, Users } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
-interface MultiplayerHighLowProps {
-  credits: number;
-}
-
-export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
+export function MultiplayerHighLow({ credits }: { credits: number }) {
   const [betAmount, setBetAmount] = useState(50);
-  const [currentGameId, setCurrentGameId] = useState<Id<"multiplayerHighLow"> | null>(null);
+  const [gameId, setGameId] = useState<Id<"multiplayerHighLow"> | null>(null);
+  const [adminModeEnabled, setAdminModeEnabled] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
 
-  const createOrJoin = useMutation(api.multiplayerHighLow.createOrJoinGame);
+  const createOrJoinGame = useMutation(api.multiplayerHighLow.createOrJoinGame);
   const makeGuess = useMutation(api.multiplayerHighLow.makeGuess);
   const cashOut = useMutation(api.multiplayerHighLow.cashOut);
   const leaveGame = useMutation(api.multiplayerHighLow.leaveGame);
   
   const gameState = useQuery(
     api.multiplayerHighLow.getGameState,
-    currentGameId ? { gameId: currentGameId } : "skip"
+    gameId ? { gameId } : "skip"
   );
 
   // Get user to check admin status
   const user = useQuery(api.users.currentUser);
   const isAdmin = user?.role === "admin";
 
-  const handleStartGame = async () => {
-    // Admin can play with 0 bet
+  const handleCreateOrJoin = async () => {
+    // Admin can play with 0 bet when admin mode is enabled
     if (!isAdmin && (betAmount <= 0 || betAmount > credits)) {
       toast.error("Invalid bet amount");
       return;
     }
 
+    if (isAdmin && !adminModeEnabled && (betAmount <= 0 || betAmount > credits)) {
+      toast.error("Invalid bet amount");
+      return;
+    }
+
     try {
-      const result = await createOrJoin({ betAmount: isAdmin && betAmount === 0 ? 0 : betAmount });
-      setCurrentGameId(result.gameId);
+      const result = await createOrJoinGame({ betAmount: isAdmin && adminModeEnabled && betAmount === 0 ? 0 : betAmount });
+      setGameId(result.gameId);
       
       if (result.joined) {
         toast.success("Joined game! Get ready!");
@@ -49,16 +53,16 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
         setIsWaiting(true);
         toast.success("Waiting for opponent...");
       }
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to start game");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to create/join game");
     }
   };
 
   const handleGuess = async (guess: "higher" | "lower") => {
-    if (!currentGameId) return;
+    if (!gameId) return;
 
     try {
-      const result = await makeGuess({ gameId: currentGameId, guess });
+      const result = await makeGuess({ gameId, guess });
       
       if (result.correct) {
         toast.success(`Correct! Streak: ${result.streak} | ${result.multiplier.toFixed(1)}x`);
@@ -71,10 +75,10 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
   };
 
   const handleCashOut = async () => {
-    if (!currentGameId) return;
+    if (!gameId) return;
 
     try {
-      const result = await cashOut({ gameId: currentGameId });
+      const result = await cashOut({ gameId });
       toast.success(`Cashed out at ${result.multiplier.toFixed(1)}x!`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to cash out");
@@ -82,11 +86,11 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
   };
 
   const handleLeave = async () => {
-    if (!currentGameId) return;
+    if (!gameId) return;
 
     try {
-      await leaveGame({ gameId: currentGameId });
-      setCurrentGameId(null);
+      await leaveGame({ gameId });
+      setGameId(null);
       setIsWaiting(false);
       toast.success("Left game and refunded");
     } catch (error) {
@@ -95,7 +99,7 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
   };
 
   const resetGame = () => {
-    setCurrentGameId(null);
+    setGameId(null);
     setIsWaiting(false);
   };
 
@@ -275,40 +279,54 @@ export function MultiplayerHighLow({ credits }: MultiplayerHighLowProps) {
   return (
     <Card className="bg-gray-900/50 border-purple-500/30">
       <CardHeader>
-        <CardTitle className="text-purple-400 flex items-center gap-2">
-          <Users className="w-5 h-5" />
-          Multiplayer High-Low
-        </CardTitle>
-        <CardDescription className="text-gray-400">
-          Compete against another player! Higher multiplier wins.
-        </CardDescription>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-purple-400 text-2xl">
+            🎴 Multiplayer High-Low 🎴
+          </CardTitle>
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="admin-mode-multiplayer" className="text-xs text-pink-400">
+                Admin Mode
+              </Label>
+              <Switch
+                id="admin-mode-multiplayer"
+                checked={adminModeEnabled}
+                onCheckedChange={setAdminModeEnabled}
+              />
+            </div>
+          )}
+        </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm text-gray-400">Bet Amount</label>
-          <Input
-            type="number"
-            value={betAmount}
-            onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
-            min={isAdmin ? 0 : 1}
-            max={credits}
-            className="bg-gray-800 border-gray-600 text-white"
-          />
-        </div>
+      <CardContent className="space-y-6">
+        {!gameId && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <Input
+                type="number"
+                min={isAdmin && adminModeEnabled ? 0 : 1}
+                max={credits}
+                value={betAmount}
+                onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
+                className="bg-gray-800 border-gray-600 text-white w-32"
+                placeholder="Bet amount"
+              />
+              <Button
+                onClick={handleCreateOrJoin}
+                disabled={isAdmin && adminModeEnabled ? false : (betAmount <= 0 || betAmount > credits)}
+                className="bg-purple-400/20 border border-purple-400 text-purple-400 hover:bg-purple-400/30"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Create/Join Game
+              </Button>
+            </div>
+            <div className="text-sm text-gray-400">
+              Play against another player • Match bet amounts to join
+              {isAdmin && adminModeEnabled && <span className="ml-2 text-pink-400">• Admin mode: Always guess correctly</span>}
+            </div>
+          </div>
+        )}
 
-        <Button
-          onClick={handleStartGame}
-          disabled={!isAdmin && (betAmount <= 0 || betAmount > credits)}
-          className="w-full bg-purple-500/20 border border-purple-500 text-purple-400 hover:bg-purple-500/30"
-        >
-          <Users className="w-4 h-4 mr-2" />
-          Find Opponent
-        </Button>
-
-        <div className="text-xs text-center text-gray-500">
-          Available Credits: {credits} CR
-          {isAdmin && <span className="ml-2 text-pink-400">• Admin Mode</span>}
-        </div>
+        {/* ... keep existing game UI code ... */}
       </CardContent>
     </Card>
   );

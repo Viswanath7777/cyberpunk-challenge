@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import type { Id } from "@/convex/_generated/dataModel";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export function Blackjack({ credits }: { credits: number }) {
   const [betAmount, setBetAmount] = useState(50);
@@ -17,6 +19,7 @@ export function Blackjack({ credits }: { credits: number }) {
   const [dealerValue, setDealerValue] = useState(0);
   const [gameStatus, setGameStatus] = useState<"idle" | "playing" | "completed">("idle");
   const [gameResult, setGameResult] = useState<string | null>(null);
+  const [adminModeEnabled, setAdminModeEnabled] = useState(false);
 
   const startGame = useMutation(api.casino.startBlackjack);
   const hit = useMutation(api.casino.blackjackHit);
@@ -28,14 +31,19 @@ export function Blackjack({ credits }: { credits: number }) {
   const isAdmin = user?.role === "admin";
 
   const handleStart = async () => {
-    // Admin can play with 0 bet
+    // Admin can play with 0 bet when admin mode is enabled
     if (!isAdmin && (betAmount <= 0 || betAmount > credits)) {
       toast.error("Invalid bet amount");
       return;
     }
 
+    if (isAdmin && !adminModeEnabled && (betAmount <= 0 || betAmount > credits)) {
+      toast.error("Invalid bet amount");
+      return;
+    }
+
     try {
-      const result = await startGame({ betAmount: isAdmin && betAmount === 0 ? 0 : betAmount });
+      const result = await startGame({ betAmount: isAdmin && adminModeEnabled && betAmount === 0 ? 0 : betAmount });
       setGameId(result.gameId);
       setPlayerHand(result.playerHand);
       setDealerHand(result.dealerHand);
@@ -148,10 +156,23 @@ export function Blackjack({ credits }: { credits: number }) {
   return (
     <Card className="bg-gray-900/50 border-cyan-400/30">
       <CardHeader>
-        <CardTitle className="text-cyan-400 text-2xl">
-          ♠️ Blackjack ♥️
-          {isAdmin && <span className="ml-2 text-xs text-pink-400">Admin Mode</span>}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-cyan-400 text-2xl">
+            ♠️ Blackjack ♥️
+          </CardTitle>
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="admin-mode-blackjack" className="text-xs text-pink-400">
+                Admin Mode
+              </Label>
+              <Switch
+                id="admin-mode-blackjack"
+                checked={adminModeEnabled}
+                onCheckedChange={setAdminModeEnabled}
+              />
+            </div>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {gameStatus === "idle" && (
@@ -159,7 +180,7 @@ export function Blackjack({ credits }: { credits: number }) {
             <div className="flex items-center gap-4">
               <Input
                 type="number"
-                min={isAdmin ? 0 : 1}
+                min={isAdmin && adminModeEnabled ? 0 : 1}
                 max={credits}
                 value={betAmount}
                 onChange={(e) => setBetAmount(parseInt(e.target.value) || 0)}
@@ -168,7 +189,7 @@ export function Blackjack({ credits }: { credits: number }) {
               />
               <Button
                 onClick={handleStart}
-                disabled={!isAdmin && (betAmount <= 0 || betAmount > credits)}
+                disabled={isAdmin && adminModeEnabled ? false : (betAmount <= 0 || betAmount > credits)}
                 className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
               >
                 Deal Cards
@@ -176,7 +197,7 @@ export function Blackjack({ credits }: { credits: number }) {
             </div>
             <div className="text-sm text-gray-400">
               Blackjack pays 3:2 • Dealer stands on 17
-              {isAdmin && <span className="ml-2 text-pink-400">• Admin always wins</span>}
+              {isAdmin && adminModeEnabled && <span className="ml-2 text-pink-400">• Admin mode active</span>}
             </div>
           </div>
         )}
