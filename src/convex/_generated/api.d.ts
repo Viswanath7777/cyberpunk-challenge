@@ -16,14 +16,15 @@ import type {
 import type * as admin from "../admin.js";
 import type * as auth_emailOtp from "../auth/emailOtp.js";
 import type * as auth from "../auth.js";
+import type * as bank from "../bank.js";
 import type * as bets from "../bets.js";
 import type * as casino from "../casino.js";
 import type * as challenges from "../challenges.js";
 import type * as characters from "../characters.js";
 import type * as http from "../http.js";
 import type * as loans from "../loans.js";
-import type * as market from "../market.js";
 import type * as multiplayerHighLow from "../multiplayerHighLow.js";
+import type * as stocks from "../stocks.js";
 import type * as users from "../users.js";
 
 /**
@@ -38,14 +39,15 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   "auth/emailOtp": typeof auth_emailOtp;
   auth: typeof auth;
+  bank: typeof bank;
   bets: typeof bets;
   casino: typeof casino;
   challenges: typeof challenges;
   characters: typeof characters;
   http: typeof http;
   loans: typeof loans;
-  market: typeof market;
   multiplayerHighLow: typeof multiplayerHighLow;
+  stocks: typeof stocks;
   users: typeof users;
 }>;
 export declare const api: FilterApi<

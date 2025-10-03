@@ -206,28 +206,29 @@ const schema = defineSchema(
       .index("by_player1", ["player1Id"])
       .index("by_player2", ["player2Id"]),
 
-    // Real Estate Market table (single-document table)
-    realEstateMarket: defineTable({
-      currentValue: v.number(),
-      lastUpdated: v.number(), // ms
-      history: v.array(v.object({ t: v.number(), v: v.number() })), // bounded in code
-      events: v.array(
-        v.object({
-          t: v.number(),
-          type: v.string(), // "boom" | "bust" | "news"
-          impact: v.number(), // fractional impact magnitude
-          description: v.string(),
-        })
-      ),
-    }),
-    // Add: Real Estate Holdings per user (aggregate position)
-    realEstateHoldings: defineTable({
+    // Bank accounts table
+    bankAccounts: defineTable({
       userId: v.id("users"),
-      units: v.number(),          // total units held
-      totalCost: v.number(),      // total cost basis in credits
-      lastUpdated: v.number(),    // ms
+      balance: v.number(),
+    }).index("by_user", ["userId"]),
+
+    // Stock tickers table
+    stockTickers: defineTable({
+      symbol: v.string(),
+      name: v.string(),
+      price: v.number(),
+      history: v.array(v.object({ t: v.number(), v: v.number() })),
+    }).index("by_symbol", ["symbol"]),
+
+    // Stock holdings table
+    stockHoldings: defineTable({
+      userId: v.id("users"),
+      symbol: v.string(),
+      shares: v.number(),
+      avgCost: v.number(),
     })
-      .index("by_user", ["userId"]),
+      .index("by_user", ["userId"])
+      .index("by_user_and_symbol", ["userId", "symbol"]),
   },
   {
     schemaValidation: false,
