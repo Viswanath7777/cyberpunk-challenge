@@ -117,6 +117,9 @@ export default function Dashboard() {
   const [invMonths, setInvMonths] = useState<number>(6);
   const [invType, setInvType] = useState<"fixed" | "index" | "crypto">("fixed");
 
+  // Add: simple Investment Simulator state for Real Estate Market
+  const [investEntryIndex, setInvestEntryIndex] = useState<number | null>(null);
+
   // Helper to evenly distribute percentage
   const distributeEvenly = (names: string[]) => {
     if (names.length === 0) return {};
@@ -1313,6 +1316,85 @@ export default function Dashboard() {
                       </div>
 
                       <Separator className="bg-cyan-400/20" />
+
+                      <div className="p-4 bg-gray-800/40 rounded border border-gray-700 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="text-sm text-gray-300 font-semibold">Investment Simulator</div>
+                          {investEntryIndex !== null && (
+                            <div className="text-xs text-gray-500">
+                              Entry Index: <span className="text-cyan-400">{investEntryIndex}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-3">
+                          <Input
+                            type="number"
+                            min={1}
+                            value={invAmount || ""}
+                            onChange={(e) => setInvAmount(parseInt(e.target.value) || 0)}
+                            placeholder="Amount to invest (CR)"
+                            className="bg-gray-800 border-gray-600 text-white w-48"
+                          />
+                          {investEntryIndex === null ? (
+                            <Button
+                              disabled={!invAmount || invAmount <= 0 || !last}
+                              onClick={() => setInvestEntryIndex(last)}
+                              className="bg-green-500/20 border border-green-500 text-green-400 hover:bg-green-500/30"
+                            >
+                              Start Investment
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              onClick={() => setInvestEntryIndex(null)}
+                              className="border-red-500 text-red-500 hover:bg-red-500/10"
+                            >
+                              Reset
+                            </Button>
+                          )}
+                        </div>
+
+                        {investEntryIndex !== null && last ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
+                            <div className="p-2 bg-gray-900/60 rounded border border-gray-700">
+                              <div className="text-gray-400">Units</div>
+                              <div className="text-cyan-400 font-bold">
+                                {(invAmount / investEntryIndex).toFixed(4)}
+                              </div>
+                            </div>
+                            <div className="p-2 bg-gray-900/60 rounded border border-gray-700">
+                              <div className="text-gray-400">Current Value</div>
+                              <div className="text-cyan-400 font-bold">
+                                {Math.floor((invAmount / investEntryIndex) * last)} CR
+                              </div>
+                            </div>
+                            <div className="p-2 bg-gray-900/60 rounded border border-gray-700">
+                              <div className="text-gray-400">P/L</div>
+                              {(() => {
+                                const currentVal = (invAmount / investEntryIndex) * last;
+                                const pl = Math.floor(currentVal - invAmount);
+                                const plPct = invAmount ? ((pl / invAmount) * 100).toFixed(2) : "0.00";
+                                return (
+                                  <div className={pl >= 0 ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                                    {pl >= 0 ? "▲" : "▼"} {pl} CR ({plPct}%)
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                            <div className="p-2 bg-gray-900/60 rounded border border-gray-700">
+                              <div className="text-gray-400">Entry → Now</div>
+                              <div className="text-gray-300">
+                                {investEntryIndex} → <span className="text-cyan-400">{last}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">
+                            Choose an amount and click "Start Investment" to simulate returns as the index moves.
+                          </div>
+                        )}
+                      </div>
 
                       <div>
                         <div className="text-sm text-gray-300 mb-2">Recent Events</div>
