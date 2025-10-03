@@ -27,6 +27,9 @@ export function StockMarket() {
   // Add migration detection for PRNHUB
   const hasByte = !!tickers?.some((t) => t.symbol === "BYTE");
   const hasPrnhub = !!tickers?.some((t) => t.symbol === "PRNHUB");
+  // Add presence checks for MMMANU and BHAVCP
+  const hasMMMANU = !!tickers?.some((t) => t.symbol === "MMMANU");
+  const hasBHAVCP = !!tickers?.some((t) => t.symbol === "BHAVCP");
 
   const handleSync = async () => {
     setSyncing(true);
@@ -127,6 +130,41 @@ export function StockMarket() {
                 </Button>
               </div>
             )}
+
+            {/* Helper to add MMMANU if missing */}
+            {tickers && tickers.length > 0 && !hasMMMANU && (
+              <div className="p-3 rounded border bg-gray-800/40 border-purple-500/60 text-purple-300 flex items-center justify-between">
+                <div className="text-sm">
+                  MMMANU is missing. Add it to the market.
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSeed}
+                  disabled={seeding}
+                  className="bg-purple-400/20 border border-purple-400 text-purple-300 hover:bg-purple-400/30"
+                >
+                  {seeding ? "Adding..." : "Add MMMANU"}
+                </Button>
+              </div>
+            )}
+
+            {/* Helper to add BHAVCP if missing */}
+            {tickers && tickers.length > 0 && !hasBHAVCP && (
+              <div className="p-3 rounded border bg-gray-800/40 border-pink-500/60 text-pink-300 flex items-center justify-between">
+                <div className="text-sm">
+                  BHAVCP is missing. Add it to the market.
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSeed}
+                  disabled={seeding}
+                  className="bg-pink-400/20 border border-pink-400 text-pink-300 hover:bg-pink-400/30"
+                >
+                  {seeding ? "Adding..." : "Add BHAVCP"}
+                </Button>
+              </div>
+            )}
+
             {tickers && tickers.length === 0 ? (
               <div className="p-4 rounded border bg-gray-800/40 border-gray-700 text-center space-y-2">
                 <div className="text-sm text-gray-400">

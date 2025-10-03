@@ -95,12 +95,12 @@ export const syncMarket = mutation({
 
       // Adjust per-ticker drift:
       // - PRNHUB: boosted positively with growth
-      // - MMMANU: inversely correlated to total credits (goes down when credits go up, and vice versa)
+      // - MMMANU and BHAVCP: inversely correlated to total credits (goes down when credits go up, and vice versa)
       const clamp = (x: number) => Math.max(-0.05, Math.min(0.05, x));
       const tickerMu =
         ticker.symbol === "PRNHUB"
           ? clamp(mu + positiveBoost)
-          : ticker.symbol === "MMMANU"
+          : ticker.symbol === "MMMANU" || ticker.symbol === "BHAVCP"
           ? clamp(-mu)
           : mu;
 
@@ -285,6 +285,7 @@ export const seedTickers = mutation({
       { symbol: "PRNHUB", name: "PRNHUB" }, // renamed/replaced ticker
       { symbol: "SYNTH", name: "SynthWare" },
       { symbol: "MMMANU", name: "MMMANU" }, // new boosted stock
+      { symbol: "BHAVCP", name: "BHAVCP" }, // inversely reacting stock
     ];
 
     for (const { symbol, name } of symbols) {
