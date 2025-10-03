@@ -64,23 +64,53 @@ export const syncMarket = mutation({
     const tickers = await ctx.db.query("stockTickers").collect();
     const now = Date.now();
 
-    for (const ticker of tickers) {
-      // Geometric Brownian motion: dS = mu*S*dt + sigma*S*dW
-      const mu = 0.0001; // drift
-      const sigma = 0.02; // volatility
-      const dt = 1;
-      const dW = (Math.random() - 0.5) * 2; // random shock
+    // Compute current total credits across all users
+    const users = await ctx.db.query("users").collect();
+    const currentTotalCredits = users.reduce((sum, u) => sum + (u.credits ?? 0), 0);
 
-      let newPrice = ticker.price * (1 + mu * dt + sigma * Math.sqrt(dt) * dW);
+    // Load last total credits from metrics
+    const metricKey = "totalCredits";
+    const metric = await ctx.db
+      .query("metrics")
+      .withIndex("by_key", (q) => q.eq("key", metricKey))
+      .first();
+
+    const lastTotalCredits = metric?.value ?? currentTotalCredits;
+
+    // Drift based on relative change in total credits, clamped to reasonable bounds
+    const changeRatio =
+      lastTotalCredits > 0
+        ? (currentTotalCredits - lastTotalCredits) / lastTotalCredits
+        : 0;
+
+    // Limit drift impact per sync to ±5%
+    const mu = Math.max(-0.05, Math.min(0.05, changeRatio));
+
+    // Small volatility to keep movement organic
+    const sigma = 0.01;
+
+    for (const ticker of tickers) {
+      const dW = (Math.random() - 0.5) * 2; // random shock in [-1, 1]
+      let newPrice = ticker.price * (1 + mu + sigma * dW);
       newPrice = Math.max(0.1, newPrice); // floor at 0.1
 
       const newHistory = [...ticker.history, { t: now, v: newPrice }];
-      // Keep last 500 points
       const trimmedHistory = newHistory.slice(-500);
 
       await ctx.db.patch(ticker._id, {
         price: newPrice,
         history: trimmedHistory,
+      });
+    }
+
+    // Persist the current total credits for next sync
+    if (metric) {
+      await ctx.db.patch(metric._id, { value: currentTotalCredits, updatedAt: now });
+    } else {
+      await ctx.db.insert("metrics", {
+        key: metricKey,
+        value: currentTotalCredits,
+        updatedAt: now,
       });
     }
 

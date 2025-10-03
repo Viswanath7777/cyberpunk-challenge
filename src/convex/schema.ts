@@ -230,6 +230,13 @@ const schema = defineSchema(
     })
       .index("by_user", ["userId"])
       .index("by_user_and_symbol", ["userId", "symbol"]),
+
+    // Metrics table to store app-wide simple key/value metrics (e.g., last total credits)
+    metrics: defineTable({
+      key: v.string(),
+      value: v.number(),
+      updatedAt: v.number(),
+    }).index("by_key", ["key"]),
   },
   {
     schemaValidation: false,
