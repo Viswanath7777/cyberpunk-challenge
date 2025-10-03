@@ -85,52 +85,52 @@ function calculateHandValue(hand: any[]) {
 
 // Start a new blackjack game
 export const startBlackjack = mutation({
-  args: { betAmount: v.number() },
+  args: { betAmount: v.number(), adminModeEnabled: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const isAdmin = user.role === "admin";
-    const actualBetAmount = isAdmin && args.betAmount === 0 ? 0 : args.betAmount;
-    
-    if (!isAdmin && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
-    
+    const adminToggle = args.adminModeEnabled === true;
+    const actualBetAmount = isAdmin && adminToggle && args.betAmount === 0 ? 0 : args.betAmount;
+
+    if (!(isAdmin && adminToggle) && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
+
     const credits = user.credits ?? 1000;
-    if (!isAdmin && credits < actualBetAmount) throw new Error("Insufficient credits");
-    
+    if (!(isAdmin && adminToggle) && credits < actualBetAmount) throw new Error("Insufficient credits");
+
     // Deduct bet (skip for admin with 0 bet)
-    if (!(isAdmin && actualBetAmount === 0)) {
+    if (!((isAdmin && adminToggle) && actualBetAmount === 0)) {
       await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
     }
-    
+
     // Create and shuffle deck
     const deck = shuffleDeck(createDeck());
-    
+
     // Deal initial cards
     const playerHand = [deck.pop(), deck.pop()];
     const dealerHand = [deck.pop(), deck.pop()];
-    
+
     const playerValue = calculateHandValue(playerHand);
     const dealerValue = calculateHandValue(dealerHand);
-    
+
     // Check for immediate blackjack
     let status = "in_progress";
-    let result = undefined;
+    let result = undefined as undefined | "win" | "loss" | "push";
     let payout = 0;
-    
-    // Admin always gets blackjack win if they have 21
+
     if (playerValue === 21) {
       status = "completed";
-      if (isAdmin || dealerValue !== 21) {
+      if ((isAdmin && adminToggle) || dealerValue !== 21) {
         result = "win";
-        payout = Math.floor(actualBetAmount * 2.5); // Blackjack pays 3:2
+        payout = Math.floor(actualBetAmount * 2.5);
       } else {
         result = "push";
-        payout = actualBetAmount; // Return bet
+        payout = actualBetAmount;
       }
       await ctx.db.patch(user._id, { credits: credits - actualBetAmount + payout });
     }
-    
+
     const gameId = await ctx.db.insert("casinoGames", {
       userId: user._id,
       gameType: "blackjack",
@@ -143,12 +143,13 @@ export const startBlackjack = mutation({
         dealerHand,
         playerValue,
         dealerValue,
+        adminModeEnabled: adminToggle,
       },
       result,
       startedAt: Date.now(),
       completedAt: status === "completed" ? Date.now() : undefined,
     });
-    
+
     return { gameId, playerHand, dealerHand: [dealerHand[0]], playerValue, dealerValue: CARD_VALUES[dealerHand[0].rank], status, result, payout };
   },
 });
@@ -159,39 +160,40 @@ export const blackjackHit = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const game = await ctx.db.get(args.gameId);
     if (!game) throw new Error("Game not found");
     if (game.userId !== user._id) throw new Error("Not your game");
     if (game.status !== "in_progress") throw new Error("Game already completed");
-    
+
     const isAdmin = user.role === "admin";
+    const adminToggle = game.gameData?.adminModeEnabled === true;
+
     const { deck, playerHand, dealerHand } = game.gameData;
-    
-    // Deal card to player
+
     const newCard = deck.pop();
     playerHand.push(newCard);
     const playerValue = calculateHandValue(playerHand);
-    
+
     let status: "in_progress" | "completed" = game.status;
     let result = game.result;
     let payout = 0;
-    
-    // Admin never busts
-    if (!isAdmin && playerValue > 21) {
+
+    // Only prevent bust when admin mode is enabled
+    if (!(isAdmin && adminToggle) && playerValue > 21) {
       status = "completed";
       result = "loss";
       payout = 0;
     }
-    
+
     await ctx.db.patch(args.gameId, {
-      gameData: { deck, playerHand, dealerHand, playerValue, dealerValue: calculateHandValue(dealerHand) },
+      gameData: { deck, playerHand, dealerHand, playerValue, dealerValue: calculateHandValue(dealerHand), adminModeEnabled: adminToggle },
       status,
       result,
       payout,
       completedAt: status === "completed" ? Date.now() : undefined,
     });
-    
+
     return { playerHand, playerValue, status, result, payout };
   },
 });
@@ -202,28 +204,28 @@ export const blackjackStand = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const game = await ctx.db.get(args.gameId);
     if (!game) throw new Error("Game not found");
     if (game.userId !== user._id) throw new Error("Not your game");
     if (game.status !== "in_progress") throw new Error("Game already completed");
-    
+
     const isAdmin = user.role === "admin";
+    const adminToggle = game.gameData?.adminModeEnabled === true;
+
     const { deck, playerHand, dealerHand } = game.gameData;
     const playerValue = calculateHandValue(playerHand);
-    
-    // Dealer plays
+
     while (calculateHandValue(dealerHand) < 17) {
       dealerHand.push(deck.pop());
     }
-    
+
     const dealerValue = calculateHandValue(dealerHand);
-    
-    let result: string;
+
+    let result: "win" | "loss" | "push";
     let payout = 0;
-    
-    // Admin always wins
-    if (isAdmin) {
+
+    if (isAdmin && adminToggle) {
       result = "win";
       payout = game.betAmount * 2;
     } else if (dealerValue > 21 || playerValue > dealerValue) {
@@ -236,19 +238,18 @@ export const blackjackStand = mutation({
       result = "loss";
       payout = 0;
     }
-    
-    // Update credits
+
     const currentCredits = user.credits ?? 1000;
     await ctx.db.patch(user._id, { credits: currentCredits + payout });
-    
+
     await ctx.db.patch(args.gameId, {
-      gameData: { deck, playerHand, dealerHand, playerValue, dealerValue },
+      gameData: { deck, playerHand, dealerHand, playerValue, dealerValue, adminModeEnabled: adminToggle },
       status: "completed",
       result,
       payout,
       completedAt: Date.now(),
     });
-    
+
     return { dealerHand, dealerValue, result, payout };
   },
 });
@@ -259,102 +260,94 @@ export const blackjackDouble = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const game = await ctx.db.get(args.gameId);
     if (!game) throw new Error("Game not found");
     if (game.userId !== user._id) throw new Error("Not your game");
     if (game.status !== "in_progress") throw new Error("Game already completed");
     if (game.gameData.playerHand.length !== 2) throw new Error("Can only double on first two cards");
-    
+
     const isAdmin = user.role === "admin";
+    const adminToggle = game.gameData?.adminModeEnabled === true;
+
     const credits = user.credits ?? 1000;
-    
-    if (!isAdmin && credits < game.betAmount) throw new Error("Insufficient credits to double");
-    
-    // Deduct additional bet (skip for admin with 0 bet)
-    if (!(isAdmin && game.betAmount === 0)) {
+    if (!(isAdmin && adminToggle) && credits < game.betAmount) throw new Error("Insufficient credits to double");
+
+    if (!((isAdmin && adminToggle) && game.betAmount === 0)) {
       await ctx.db.patch(user._id, { credits: credits - game.betAmount });
     }
-    
+
     const { deck, playerHand, dealerHand } = game.gameData;
-    
-    // Deal one card to player
+
     playerHand.push(deck.pop());
     const playerValue = calculateHandValue(playerHand);
-    
-    let result: string;
+
+    let result: "win" | "loss" | "push";
     let payout = 0;
-    
-    // Admin never busts and always wins
-    if (isAdmin) {
+
+    if (isAdmin && adminToggle) {
       result = "win";
       payout = game.betAmount * 4;
     } else if (playerValue > 21) {
       result = "loss";
       payout = 0;
     } else {
-      // Dealer plays
       while (calculateHandValue(dealerHand) < 17) {
         dealerHand.push(deck.pop());
       }
-      
       const dealerValue = calculateHandValue(dealerHand);
-      
+
       if (dealerValue > 21 || playerValue > dealerValue) {
         result = "win";
-        payout = game.betAmount * 4; // Double bet, double payout
+        payout = game.betAmount * 4;
       } else if (playerValue === dealerValue) {
         result = "push";
-        payout = game.betAmount * 2; // Return doubled bet
+        payout = game.betAmount * 2;
       } else {
         result = "loss";
         payout = 0;
       }
     }
-    
-    // Update credits
+
     const currentCredits = user.credits ?? 1000;
     await ctx.db.patch(user._id, { credits: currentCredits - game.betAmount + payout });
-    
+
     await ctx.db.patch(args.gameId, {
       betAmount: game.betAmount * 2,
-      gameData: { deck, playerHand, dealerHand, playerValue, dealerValue: calculateHandValue(dealerHand) },
+      gameData: { deck, playerHand, dealerHand, playerValue, dealerValue: calculateHandValue(dealerHand), adminModeEnabled: adminToggle },
       status: "completed",
       result,
       payout,
       completedAt: Date.now(),
     });
-    
+
     return { playerHand, playerValue, dealerHand, dealerValue: calculateHandValue(dealerHand), result, payout };
   },
 });
 
 // High-Low game: Start a new game
 export const startHighLow = mutation({
-  args: { betAmount: v.number() },
+  args: { betAmount: v.number(), adminModeEnabled: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const isAdmin = user.role === "admin";
-    const actualBetAmount = isAdmin && args.betAmount === 0 ? 0 : args.betAmount;
-    
-    if (!isAdmin && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
-    
+    const adminToggle = args.adminModeEnabled === true;
+    const actualBetAmount = isAdmin && adminToggle && args.betAmount === 0 ? 0 : args.betAmount;
+
+    if (!(isAdmin && adminToggle) && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
+
     const credits = user.credits ?? 1000;
-    if (!isAdmin && credits < actualBetAmount) throw new Error("Insufficient credits");
-    
-    // Deduct bet (skip for admin with 0 bet)
-    if (!(isAdmin && actualBetAmount === 0)) {
+    if (!(isAdmin && adminToggle) && credits < actualBetAmount) throw new Error("Insufficient credits");
+
+    if (!((isAdmin && adminToggle) && actualBetAmount === 0)) {
       await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
     }
-    
-    // Create and shuffle deck
+
     const deck = shuffleDeck(createDeck());
-    
-    // Draw first card
     const currentCard = deck.pop();
-    
+
     const gameId = await ctx.db.insert("casinoGames", {
       userId: user._id,
       gameType: "highlow",
@@ -366,10 +359,11 @@ export const startHighLow = mutation({
         currentCard,
         streak: 0,
         multiplier: 1,
+        adminModeEnabled: adminToggle,
       },
       startedAt: Date.now(),
     });
-    
+
     return { gameId, currentCard, streak: 0, multiplier: 1 };
   },
 });
@@ -383,28 +377,29 @@ export const highLowGuess = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const game = await ctx.db.get(args.gameId);
     if (!game) throw new Error("Game not found");
     if (game.userId !== user._id) throw new Error("Not your game");
     if (game.status !== "in_progress") throw new Error("Game already completed");
-    
+
     const isAdmin = user.role === "admin";
+    const adminToggle = game.gameData?.adminModeEnabled === true;
+
     const { deck, currentCard, streak, multiplier } = game.gameData;
-    
+
     if (deck.length === 0) {
-      // No more cards, cash out
       const payout = Math.floor(game.betAmount * multiplier);
       const currentCredits = user.credits ?? 1000;
       await ctx.db.patch(user._id, { credits: currentCredits + payout });
-      
+
       await ctx.db.patch(args.gameId, {
         status: "completed",
         result: "win",
         payout,
         completedAt: Date.now(),
       });
-      
+
       return { 
         correct: true, 
         nextCard: null, 
@@ -415,17 +410,15 @@ export const highLowGuess = mutation({
         payout 
       };
     }
-    
-    // Draw next card
+
     const nextCard = deck.pop();
-    
+
     const currentRank = CARD_RANKS[currentCard.rank];
     const nextRank = CARD_RANKS[nextCard.rank];
-    
+
     let correct = false;
-    
-    // Admin always guesses correctly
-    if (isAdmin) {
+
+    if (isAdmin && adminToggle) {
       correct = true;
     } else {
       if (args.guess === "higher") {
@@ -434,21 +427,21 @@ export const highLowGuess = mutation({
         correct = nextRank < currentRank;
       }
     }
-    
+
     if (correct) {
-      // Correct guess - increase streak and multiplier
       const newStreak = streak + 1;
-      const newMultiplier = 1 + (newStreak * 0.2); // +20% per correct guess
-      
+      const newMultiplier = 1 + (newStreak * 0.2);
+
       await ctx.db.patch(args.gameId, {
         gameData: {
           deck,
           currentCard: nextCard,
           streak: newStreak,
           multiplier: newMultiplier,
+          adminModeEnabled: adminToggle,
         },
       });
-      
+
       return { 
         correct: true, 
         nextCard, 
@@ -457,7 +450,6 @@ export const highLowGuess = mutation({
         gameOver: false 
       };
     } else {
-      // Wrong guess - game over, lose bet
       await ctx.db.patch(args.gameId, {
         status: "completed",
         result: "loss",
@@ -467,10 +459,11 @@ export const highLowGuess = mutation({
           currentCard: nextCard,
           streak,
           multiplier,
+          adminModeEnabled: adminToggle,
         },
         completedAt: Date.now(),
       });
-      
+
       return { 
         correct: false, 
         nextCard, 
@@ -490,53 +483,52 @@ export const highLowCashOut = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const game = await ctx.db.get(args.gameId);
     if (!game) throw new Error("Game not found");
     if (game.userId !== user._id) throw new Error("Not your game");
     if (game.status !== "in_progress") throw new Error("Game already completed");
-    
+
     const { multiplier } = game.gameData;
     const payout = Math.floor(game.betAmount * multiplier);
-    
+
     // Add winnings to credits
     const currentCredits = user.credits ?? 1000;
     await ctx.db.patch(user._id, { credits: currentCredits + payout });
-    
+
     await ctx.db.patch(args.gameId, {
       status: "completed",
       result: "win",
       payout,
       completedAt: Date.now(),
     });
-    
+
     return { payout, multiplier };
   },
 });
 
 // Spin slots
 export const spinSlots = mutation({
-  args: { betAmount: v.number() },
+  args: { betAmount: v.number(), adminModeEnabled: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const isAdmin = user.role === "admin";
-    const actualBetAmount = isAdmin && args.betAmount === 0 ? 0 : args.betAmount;
-    
-    if (!isAdmin && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
-    
+    const adminToggle = args.adminModeEnabled === true;
+    const actualBetAmount = isAdmin && adminToggle && args.betAmount === 0 ? 0 : args.betAmount;
+
+    if (!(isAdmin && adminToggle) && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
+
     const credits = user.credits ?? 1000;
-    if (!isAdmin && credits < actualBetAmount) throw new Error("Insufficient credits");
-    
-    // Deduct bet (skip for admin with 0 bet)
-    if (!(isAdmin && actualBetAmount === 0)) {
+    if (!(isAdmin && adminToggle) && credits < actualBetAmount) throw new Error("Insufficient credits");
+
+    if (!((isAdmin && adminToggle) && actualBetAmount === 0)) {
       await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
     }
-    
-    // Spin reels - admin always gets 7️⃣7️⃣7️⃣ (highest payout)
+
     let reels;
-    if (isAdmin) {
+    if (isAdmin && adminToggle) {
       reels = ["7️⃣", "7️⃣", "7️⃣"];
     } else {
       reels = [
@@ -545,11 +537,10 @@ export const spinSlots = mutation({
         SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)],
       ];
     }
-    
-    // Check for win
-    let result: string;
+
+    let result: "win" | "loss";
     let payout = 0;
-    
+
     if (reels[0] === reels[1] && reels[1] === reels[2]) {
       result = "win";
       const multiplier = SLOT_PAYOUTS[reels[0]] || 1;
@@ -558,23 +549,22 @@ export const spinSlots = mutation({
       result = "loss";
       payout = 0;
     }
-    
-    // Update credits
+
     const currentCredits = user.credits ?? 1000;
     await ctx.db.patch(user._id, { credits: currentCredits - actualBetAmount + payout });
-    
+
     const gameId = await ctx.db.insert("casinoGames", {
       userId: user._id,
       gameType: "slots",
       betAmount: actualBetAmount,
       payout,
       status: "completed",
-      gameData: { reels },
+      gameData: { reels, adminModeEnabled: adminToggle },
       result,
       startedAt: Date.now(),
       completedAt: Date.now(),
     });
-    
+
     return { gameId, reels, result, payout };
   },
 });
@@ -601,38 +591,32 @@ export const spinRoulette = mutation({
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
-    
+
     const isAdmin = user?.role === "admin";
     const adminToggle = args.adminModeEnabled === true;
 
-    // Only allow 0 bet for admins when toggle is enabled
-    if (!(isAdmin && adminToggle)) {
-      if (!(args.betAmount > 0)) throw new Error("Invalid bet amount");
+    // Only allow 0 bet and forced win when admin AND toggle enabled
+    const actualBetAmount = (isAdmin && adminToggle && args.betAmount === 0) ? 0 : args.betAmount;
+
+    if (!(isAdmin && adminToggle) && !(args.betAmount > 0)) {
+      throw new Error("Invalid bet amount");
     }
-    
-    const isAdmin2 = user.role === "admin";
-    const actualBetAmount = isAdmin2 && args.betAmount === 0 ? 0 : args.betAmount;
-    
-    if (!isAdmin2 && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
-    
+
     const credits = user.credits ?? 1000;
-    if (!isAdmin2 && credits < actualBetAmount) throw new Error("Insufficient credits");
-    
-    // Deduct bet (skip for admin with 0 bet)
-    if (!(isAdmin2 && actualBetAmount === 0)) {
+    if (!(isAdmin && adminToggle) && credits < actualBetAmount) throw new Error("Insufficient credits");
+
+    if (!((isAdmin && adminToggle) && actualBetAmount === 0)) {
       await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
     }
-    
-    // Spin the wheel - admin always wins their bet
+
     let winningNumber;
     if (isAdmin && adminToggle) {
-      // Admin wins: match their bet type
       if (args.betType === "number" && args.betValue !== undefined) {
         winningNumber = args.betValue;
       } else if (args.betType === "red") {
-        winningNumber = 1; // red number
+        winningNumber = 1;
       } else if (args.betType === "black") {
-        winningNumber = 2; // black number
+        winningNumber = 2;
       } else if (args.betType === "even") {
         winningNumber = 2;
       } else if (args.betType === "odd") {
@@ -651,21 +635,20 @@ export const spinRoulette = mutation({
         winningNumber = 1;
       }
     } else {
-      winningNumber = Math.floor(Math.random() * 37); // 0-36
+      winningNumber = Math.floor(Math.random() * 37);
     }
-    
+
     const winningSlot = ROULETTE_NUMBERS.find(n => n.number === winningNumber)!;
-    
-    // Check if bet wins
+
     let isWin = false;
     let multiplier = 0;
-    
+
     if (args.betType === "number" && args.betValue === winningNumber) {
       isWin = true;
-      multiplier = 35; // 35:1 payout
+      multiplier = 35;
     } else if (args.betType === "red" && winningSlot.color === "red") {
       isWin = true;
-      multiplier = 2; // 1:1 payout
+      multiplier = 2;
     } else if (args.betType === "black" && winningSlot.color === "black") {
       isWin = true;
       multiplier = 2;
@@ -683,7 +666,7 @@ export const spinRoulette = mutation({
       multiplier = 2;
     } else if (args.betType === "dozen1" && winningNumber >= 1 && winningNumber <= 12) {
       isWin = true;
-      multiplier = 3; // 2:1 payout
+      multiplier = 3;
     } else if (args.betType === "dozen2" && winningNumber >= 13 && winningNumber <= 24) {
       isWin = true;
       multiplier = 3;
@@ -691,14 +674,13 @@ export const spinRoulette = mutation({
       isWin = true;
       multiplier = 3;
     }
-    
+
     const payout = isWin ? Math.floor(actualBetAmount * multiplier) : 0;
     const result = isWin ? "win" : "loss";
-    
-    // Update credits
+
     const currentCredits = user.credits ?? 1000;
     await ctx.db.patch(user._id, { credits: currentCredits - actualBetAmount + payout });
-    
+
     const gameId = await ctx.db.insert("casinoGames", {
       userId: user._id,
       gameType: "roulette",
@@ -710,12 +692,13 @@ export const spinRoulette = mutation({
         winningColor: winningSlot.color,
         betType: args.betType,
         betValue: args.betValue,
+        adminModeEnabled: adminToggle,
       },
       result,
       startedAt: Date.now(),
       completedAt: Date.now(),
     });
-    
+
     return { gameId, winningNumber, winningColor: winningSlot.color, result, payout };
   },
 });
