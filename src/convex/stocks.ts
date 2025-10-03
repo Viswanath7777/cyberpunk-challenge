@@ -90,8 +90,13 @@ export const syncMarket = mutation({
     const sigma = 0.01;
 
     for (const ticker of tickers) {
+      // Apply extra positive sensitivity to PRNHUB when total credits increase
+      const positiveBoost = Math.max(0, mu) * 0.5; // up to +2.5% extra
+      const tickerMu =
+        ticker.symbol === "PRNHUB" ? Math.max(-0.05, Math.min(0.05, mu + positiveBoost)) : mu;
+
       const dW = (Math.random() - 0.5) * 2; // random shock in [-1, 1]
-      let newPrice = ticker.price * (1 + mu + sigma * dW);
+      let newPrice = ticker.price * (1 + tickerMu + sigma * dW);
       newPrice = Math.max(0.1, newPrice); // floor at 0.1
 
       const newHistory = [...ticker.history, { t: now, v: newPrice }];
@@ -245,11 +250,30 @@ export const sell = mutation({
 export const seedTickers = mutation({
   args: {},
   handler: async (ctx) => {
+    // Migration: If BYTE exists and PRNHUB doesn't, rename BYTE -> PRNHUB
+    const prnhubExisting = await ctx.db
+      .query("stockTickers")
+      .withIndex("by_symbol", (q) => q.eq("symbol", "PRNHUB"))
+      .first();
+
+    if (!prnhubExisting) {
+      const byteExisting = await ctx.db
+        .query("stockTickers")
+        .withIndex("by_symbol", (q) => q.eq("symbol", "BYTE"))
+        .first();
+      if (byteExisting) {
+        await ctx.db.patch(byteExisting._id, {
+          symbol: "PRNHUB",
+          name: "PRNHUB",
+        });
+      }
+    }
+
     const symbols = [
       { symbol: "CYBR", name: "CyberCorp" },
       { symbol: "NEON", name: "Neon Industries" },
       { symbol: "GRID", name: "GridTech" },
-      { symbol: "BYTE", name: "ByteSystems" },
+      { symbol: "PRNHUB", name: "PRNHUB" }, // renamed/replaced ticker
       { symbol: "SYNTH", name: "SynthWare" },
     ];
 
