@@ -550,8 +550,9 @@ export const spinSlots = mutation({
       payout = 0;
     }
 
+    // Fix credits adjustment: we've already deducted the bet above; only add payout here
     const currentCredits = user.credits ?? 1000;
-    await ctx.db.patch(user._id, { credits: currentCredits - actualBetAmount + payout });
+    await ctx.db.patch(user._id, { credits: currentCredits + payout });
 
     const gameId = await ctx.db.insert("casinoGames", {
       userId: user._id,
@@ -598,7 +599,8 @@ export const spinRoulette = mutation({
     // Only allow 0 bet and forced win when admin AND toggle enabled
     const actualBetAmount = (isAdmin && adminToggle && args.betAmount === 0) ? 0 : args.betAmount;
 
-    if (!(isAdmin && adminToggle) && !(args.betAmount > 0)) {
+    // Use actualBetAmount for validation when toggle is off
+    if (!(isAdmin && adminToggle) && !(actualBetAmount > 0)) {
       throw new Error("Invalid bet amount");
     }
 
@@ -678,8 +680,9 @@ export const spinRoulette = mutation({
     const payout = isWin ? Math.floor(actualBetAmount * multiplier) : 0;
     const result = isWin ? "win" : "loss";
 
+    // Fix credits adjustment: we've already deducted the bet above; only add payout here
     const currentCredits = user.credits ?? 1000;
-    await ctx.db.patch(user._id, { credits: currentCredits - actualBetAmount + payout });
+    await ctx.db.patch(user._id, { credits: currentCredits + payout });
 
     const gameId = await ctx.db.insert("casinoGames", {
       userId: user._id,
