@@ -24,6 +24,10 @@ export function StockMarket() {
 
   const selectedTicker = tickers?.find((t) => t.symbol === selectedSymbol);
 
+  // Add migration detection for PRNHUB
+  const hasByte = !!tickers?.some((t) => t.symbol === "BYTE");
+  const hasPrnhub = !!tickers?.some((t) => t.symbol === "PRNHUB");
+
   const handleSync = async () => {
     setSyncing(true);
     try {
@@ -107,6 +111,22 @@ export function StockMarket() {
         <div className="space-y-2">
           <div className="text-sm text-cyan-400 font-bold">Available Stocks</div>
           <div className="grid gap-2">
+            {/* Show migration helper if needed */}
+            {tickers && tickers.length > 0 && hasByte && !hasPrnhub && (
+              <div className="p-3 rounded border bg-gray-800/40 border-yellow-500/60 text-yellow-300 flex items-center justify-between">
+                <div className="text-sm">
+                  PRNHUB migration available (renames BYTE to PRNHUB).
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSeed}
+                  disabled={seeding}
+                  className="bg-yellow-400/20 border border-yellow-400 text-yellow-300 hover:bg-yellow-400/30"
+                >
+                  {seeding ? "Migrating..." : "Migrate PRNHUB"}
+                </Button>
+              </div>
+            )}
             {tickers && tickers.length === 0 ? (
               <div className="p-4 rounded border bg-gray-800/40 border-gray-700 text-center space-y-2">
                 <div className="text-sm text-gray-400">
