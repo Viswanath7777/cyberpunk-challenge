@@ -93,7 +93,9 @@ export const syncMarket = mutation({
       // Apply extra positive sensitivity to PRNHUB when total credits increase
       const positiveBoost = Math.max(0, mu) * 0.5; // up to +2.5% extra
       const tickerMu =
-        ticker.symbol === "PRNHUB" ? Math.max(-0.05, Math.min(0.05, mu + positiveBoost)) : mu;
+        (ticker.symbol === "PRNHUB" || ticker.symbol === "MMMANU")
+          ? Math.max(-0.05, Math.min(0.05, mu + positiveBoost))
+          : mu;
 
       const dW = (Math.random() - 0.5) * 2; // random shock in [-1, 1]
       let newPrice = ticker.price * (1 + tickerMu + sigma * dW);
@@ -275,6 +277,7 @@ export const seedTickers = mutation({
       { symbol: "GRID", name: "GridTech" },
       { symbol: "PRNHUB", name: "PRNHUB" }, // renamed/replaced ticker
       { symbol: "SYNTH", name: "SynthWare" },
+      { symbol: "MMMANU", name: "MMMANU" }, // new boosted stock
     ];
 
     for (const { symbol, name } of symbols) {
