@@ -30,6 +30,7 @@ export function StockMarket() {
   // Add presence checks for MMMANU and BHAVCP
   const hasMMMANU = !!tickers?.some((t) => t.symbol === "MMMANU");
   const hasBHAVCP = !!tickers?.some((t) => t.symbol === "BHAVCP");
+  const hasCHHASC = !!tickers?.some((t) => t.symbol === "CHHASC");
 
   const handleSync = async () => {
     setSyncing(true);
@@ -161,6 +162,23 @@ export function StockMarket() {
                   className="bg-pink-400/20 border border-pink-400 text-pink-300 hover:bg-pink-400/30"
                 >
                   {seeding ? "Adding..." : "Add BHAVCP"}
+                </Button>
+              </div>
+            )}
+
+            {/* Helper to add CHHASC if missing */}
+            {tickers && tickers.length > 0 && !hasCHHASC && (
+              <div className="p-3 rounded border bg-gray-800/40 border-cyan-500/60 text-cyan-300 flex items-center justify-between">
+                <div className="text-sm">
+                  CHHASC is missing. Add it to the market.
+                </div>
+                <Button
+                  size="sm"
+                  onClick={handleSeed}
+                  disabled={seeding}
+                  className="bg-cyan-400/20 border border-cyan-400 text-cyan-300 hover:bg-cyan-400/30"
+                >
+                  {seeding ? "Adding..." : "Add CHHASC"}
                 </Button>
               </div>
             )}

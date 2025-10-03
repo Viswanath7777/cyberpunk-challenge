@@ -94,11 +94,11 @@ export const syncMarket = mutation({
       const positiveBoost = Math.max(0, mu) * 0.5; // up to +2.5% extra
 
       // Adjust per-ticker drift:
-      // - PRNHUB: boosted positively with growth
+      // - PRNHUB and CHHASC: boosted positively with growth
       // - MMMANU and BHAVCP: inversely correlated to total credits (goes down when credits go up, and vice versa)
       const clamp = (x: number) => Math.max(-0.05, Math.min(0.05, x));
       const tickerMu =
-        ticker.symbol === "PRNHUB"
+        (ticker.symbol === "PRNHUB" || ticker.symbol === "CHHASC")
           ? clamp(mu + positiveBoost)
           : ticker.symbol === "MMMANU" || ticker.symbol === "BHAVCP"
           ? clamp(-mu)
@@ -278,13 +278,31 @@ export const seedTickers = mutation({
       }
     }
 
+    // Migration: If CHHASC doesn't exist and SYNTH does, rename SYNTH -> CHHASC
+    const chhascExisting = await ctx.db
+      .query("stockTickers")
+      .withIndex("by_symbol", (q) => q.eq("symbol", "CHHASC"))
+      .first();
+    if (!chhascExisting) {
+      const synthExisting = await ctx.db
+        .query("stockTickers")
+        .withIndex("by_symbol", (q) => q.eq("symbol", "SYNTH"))
+        .first();
+      if (synthExisting) {
+        await ctx.db.patch(synthExisting._id, {
+          symbol: "CHHASC",
+          name: "CHHASC",
+        });
+      }
+    }
+
     const symbols = [
       { symbol: "CYBR", name: "CyberCorp" },
       { symbol: "NEON", name: "Neon Industries" },
       { symbol: "GRID", name: "GridTech" },
       { symbol: "PRNHUB", name: "PRNHUB" }, // renamed/replaced ticker
-      { symbol: "SYNTH", name: "SynthWare" },
-      { symbol: "MMMANU", name: "MMMANU" }, // new boosted stock
+      { symbol: "CHHASC", name: "CHHASC" }, // replaces SYNTH and rises with credits
+      { symbol: "MMMANU", name: "MMMANU" }, // inversely reacting stock
       { symbol: "BHAVCP", name: "BHAVCP" }, // inversely reacting stock
     ];
 
