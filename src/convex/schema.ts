@@ -163,7 +163,7 @@ const schema = defineSchema(
     // Casino games table
     casinoGames: defineTable({
       userId: v.id("users"),
-      gameType: v.union(v.literal("blackjack"), v.literal("slots"), v.literal("highlow"), v.literal("roulette")),
+      gameType: v.union(v.literal("blackjack"), v.literal("slots"), v.literal("highlow"), v.literal("roulette"), v.literal("horseRacing")),
       betAmount: v.number(),
       payout: v.number(),
       status: v.union(v.literal("in_progress"), v.literal("completed")),

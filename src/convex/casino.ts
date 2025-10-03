@@ -676,7 +676,7 @@ export const spinRoulette = mutation({
     }
     
     const payout = isWin ? Math.floor(actualBetAmount * multiplier) : 0;
-    const result = isWin ? "win" : "loss";
+    const result: "win" | "loss" = isWin ? "win" : "loss";
     
     // Update credits
     const currentCredits = user.credits ?? 1000;
@@ -700,6 +700,99 @@ export const spinRoulette = mutation({
     });
     
     return { gameId, winningNumber, winningColor: winningSlot.color, result, payout };
+  },
+});
+
+// Add single-player Horse Racing game
+export const runHorseRace = mutation({
+  args: {
+    betAmount: v.number(),
+    selectedHorse: v.number(), // 1-5
+    adminMode: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    if (args.selectedHorse < 1 || args.selectedHorse > 5) {
+      throw new Error("Invalid horse selection");
+    }
+
+    const isAdmin = user.role === "admin";
+    const adminCheat = isAdmin && args.adminMode === true;
+    const actualBetAmount = adminCheat && args.betAmount === 0 ? 0 : args.betAmount;
+
+    if (!adminCheat && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
+
+    const credits = user.credits ?? 1000;
+    if (!adminCheat && credits < actualBetAmount) throw new Error("Insufficient credits");
+
+    // Deduct bet (skip for admin cheating with 0 bet)
+    if (!(adminCheat && actualBetAmount === 0)) {
+      await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
+    }
+
+    // Simulate race
+    const horses = [0, 0, 0, 0, 0]; // positions
+    const steps: Array<number[]> = [];
+    const finishLine = 100;
+
+    // Decide winner
+    let winnerIdx: number;
+    if (adminCheat) {
+      winnerIdx = args.selectedHorse - 1;
+    } else {
+      winnerIdx = Math.floor(Math.random() * 5);
+    }
+
+    // Generate race steps with some randomness; ensure chosen winner finishes first
+    while (true) {
+      for (let i = 0; i < 5; i++) {
+        const base = i === winnerIdx ? 6 : 4;
+        const variance = Math.floor(Math.random() * 4); // 0-3
+        horses[i] += base + variance;
+        if (horses[i] > finishLine) horses[i] = finishLine;
+      }
+      steps.push([...horses]);
+      const finished = horses.findIndex((p) => p >= finishLine);
+      if (finished !== -1) break;
+      if (steps.length > 60) break; // safety cap
+    }
+
+    const winner = winnerIdx + 1;
+    const isWin = winner === args.selectedHorse;
+    const multiplier = 5; // 5x payout for winning horse
+    const payout = isWin ? Math.floor(actualBetAmount * multiplier) : 0;
+    const result = isWin ? "win" : "loss";
+
+    // Update credits
+    const currentCredits = (await ctx.db.get(user._id))?.credits ?? 1000;
+    await ctx.db.patch(user._id, { credits: currentCredits + payout });
+
+    const gameId = await ctx.db.insert("casinoGames", {
+      userId: user._id,
+      gameType: "horseRacing",
+      betAmount: actualBetAmount,
+      payout,
+      status: "completed",
+      gameData: {
+        raceLog: steps.slice(0, 60),
+        winner,
+        selectedHorse: args.selectedHorse,
+      },
+      result,
+      startedAt: Date.now(),
+      completedAt: Date.now(),
+    });
+
+    return {
+      gameId,
+      raceLog: steps.slice(0, 60),
+      winner,
+      selectedHorse: args.selectedHorse,
+      payout,
+      result: result as "win" | "loss",
+    };
   },
 });
 
