@@ -90,18 +90,20 @@ export const syncMarket = mutation({
     const sigma = 0.01;
 
     for (const ticker of tickers) {
-      // Apply extra positive sensitivity to PRNHUB when total credits increase
+      // Apply extra positive sensitivity to PRNHUB/CHHASC when total credits increase
       const positiveBoost = Math.max(0, mu) * 0.5; // up to +2.5% extra
+      // Apply a mirrored inverse boost to MMMANU/BHAVCP so they react clearly inversely
+      const inverseBoost = Math.max(0, mu) * 0.5;
 
       // Adjust per-ticker drift:
       // - PRNHUB and CHHASC: boosted positively with growth
-      // - MMMANU and BHAVCP: inversely correlated to total credits (goes down when credits go up, and vice versa)
+      // - MMMANU and BHAVCP: inversely correlated to total credits (stronger down when credits go up)
       const clamp = (x: number) => Math.max(-0.05, Math.min(0.05, x));
       const tickerMu =
         (ticker.symbol === "PRNHUB" || ticker.symbol === "CHHASC")
           ? clamp(mu + positiveBoost)
-          : ticker.symbol === "MMMANU" || ticker.symbol === "BHAVCP"
-          ? clamp(-mu)
+          : (ticker.symbol === "MMMANU" || ticker.symbol === "BHAVCP")
+          ? clamp(-mu - inverseBoost)
           : mu;
 
       const dW = (Math.random() - 0.5) * 2; // random shock in [-1, 1]
