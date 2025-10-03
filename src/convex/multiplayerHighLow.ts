@@ -31,19 +31,22 @@ function shuffleDeck(deck: any[]) {
 
 // Create or join a multiplayer game
 export const createOrJoinGame = mutation({
-  args: { betAmount: v.number() },
+  args: { 
+    betAmount: v.number(),
+    adminMode: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
     
-    // Admin bypass: allow 0 bet and skip credit check
     const isAdmin = user.role === "admin";
-    const actualBetAmount = isAdmin && args.betAmount === 0 ? 0 : args.betAmount;
+    const adminCheat = isAdmin && args.adminMode === true;
+    const actualBetAmount = adminCheat && args.betAmount === 0 ? 0 : args.betAmount;
     
-    if (!isAdmin && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
+    if (!adminCheat && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
     
     const credits = user.credits ?? 1000;
-    if (!isAdmin && credits < actualBetAmount) throw new Error("Insufficient credits");
+    if (!adminCheat && credits < actualBetAmount) throw new Error("Insufficient credits");
     
     // Check for existing waiting games with same bet amount
     const waitingGame = await ctx.db
@@ -53,8 +56,8 @@ export const createOrJoinGame = mutation({
       .first();
     
     if (waitingGame && waitingGame.player1Id !== user._id) {
-      // Join existing game - only deduct credits if not admin
-      if (!isAdmin) {
+      // Join existing game - only deduct credits if not cheating zero
+      if (!(adminCheat && actualBetAmount === 0)) {
         await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
       }
       
@@ -71,8 +74,8 @@ export const createOrJoinGame = mutation({
       
       return { gameId: waitingGame._id, joined: true };
     } else {
-      // Create new game - only deduct credits if not admin
-      if (!isAdmin) {
+      // Create new game - only deduct credits if not cheating zero
+      if (!(adminCheat && actualBetAmount === 0)) {
         await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
       }
       
@@ -144,6 +147,7 @@ export const makeGuess = mutation({
   args: {
     gameId: v.id("multiplayerHighLow"),
     guess: v.union(v.literal("higher"), v.literal("lower")),
+    adminMode: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -173,10 +177,11 @@ export const makeGuess = mutation({
     const currentRank = CARD_RANKS[currentCard.rank];
     const nextRank = CARD_RANKS[nextCard.rank];
     
-    // Admin cheat: always correct
     const isAdmin = user.role === "admin";
+    const adminCheat = isAdmin && args.adminMode === true;
     let correct = false;
-    if (isAdmin) {
+
+    if (adminCheat) {
       correct = true;
     } else {
       if (args.guess === "higher") {

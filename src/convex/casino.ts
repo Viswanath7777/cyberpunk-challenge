@@ -585,28 +585,31 @@ export const spinRoulette = mutation({
     betAmount: v.number(),
     betType: v.string(), // "number", "red", "black", "even", "odd", "1-18", "19-36", "dozen1", "dozen2", "dozen3"
     betValue: v.optional(v.number()), // specific number if betting on a number
+    adminMode: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
     
     const isAdmin = user.role === "admin";
-    const actualBetAmount = isAdmin && args.betAmount === 0 ? 0 : args.betAmount;
+    const adminCheat = isAdmin && args.adminMode === true;
+
+    // Allow 0 bet only when adminMode is enabled
+    const actualBetAmount = adminCheat && args.betAmount === 0 ? 0 : args.betAmount;
     
-    if (!isAdmin && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
+    if (!adminCheat && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
     
     const credits = user.credits ?? 1000;
-    if (!isAdmin && credits < actualBetAmount) throw new Error("Insufficient credits");
+    if (!adminCheat && credits < actualBetAmount) throw new Error("Insufficient credits");
     
-    // Deduct bet (skip for admin with 0 bet)
-    if (!(isAdmin && actualBetAmount === 0)) {
+    // Deduct bet (skip for admin with 0 bet and adminMode on)
+    if (!(adminCheat && actualBetAmount === 0)) {
       await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
     }
     
-    // Spin the wheel - admin always wins their bet
+    // Spin the wheel - admin wins only if adminMode is enabled
     let winningNumber;
-    if (isAdmin) {
-      // Admin wins: match their bet type
+    if (adminCheat) {
       if (args.betType === "number" && args.betValue !== undefined) {
         winningNumber = args.betValue;
       } else if (args.betType === "red") {
