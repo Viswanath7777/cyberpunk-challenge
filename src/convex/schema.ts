@@ -205,6 +205,21 @@ const schema = defineSchema(
       .index("by_status", ["status"])
       .index("by_player1", ["player1Id"])
       .index("by_player2", ["player2Id"]),
+
+    // Real Estate Market table (single-document table)
+    realEstateMarket: defineTable({
+      currentValue: v.number(),
+      lastUpdated: v.number(), // ms
+      history: v.array(v.object({ t: v.number(), v: v.number() })), // bounded in code
+      events: v.array(
+        v.object({
+          t: v.number(),
+          type: v.string(), // "boom" | "bust" | "news"
+          impact: v.number(), // fractional impact magnitude
+          description: v.string(),
+        })
+      ),
+    }),
   },
   {
     schemaValidation: false,
