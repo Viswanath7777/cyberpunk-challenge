@@ -31,14 +31,26 @@ function shuffleDeck(deck: any[]) {
 
 // Create or join a multiplayer game
 export const createOrJoinGame = mutation({
-  args: { betAmount: v.number() },
+  args: {
+    betAmount: v.number(),
+    adminModeEnabled: v.optional(v.boolean()),
+  },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
     
     // Admin bypass: allow 0 bet and skip credit check
     const isAdmin = user.role === "admin";
-    const actualBetAmount = isAdmin && args.betAmount === 0 ? 0 : args.betAmount;
+    const adminToggle = args.adminModeEnabled === true;
+    
+    // Enforce bet rules: only allow 0 bet for admins when toggle is on
+    if (!(isAdmin && adminToggle)) {
+      if (!(args.betAmount > 0)) {
+        throw new Error("Invalid bet amount");
+      }
+    }
+    
+    const actualBetAmount = args.betAmount;
     
     if (!isAdmin && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
     
@@ -144,6 +156,7 @@ export const makeGuess = mutation({
   args: {
     gameId: v.id("multiplayerHighLow"),
     guess: v.union(v.literal("higher"), v.literal("lower")),
+    adminModeEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -175,8 +188,11 @@ export const makeGuess = mutation({
     
     // Admin cheat: always correct
     const isAdmin = user.role === "admin";
+    const adminToggle = args.adminModeEnabled === true;
     let correct = false;
-    if (isAdmin) {
+    
+    if (isAdmin && adminToggle) {
+      // Only auto-correct when toggle is enabled
       correct = true;
     } else {
       if (args.guess === "higher") {

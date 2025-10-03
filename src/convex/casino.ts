@@ -581,31 +581,51 @@ export const spinSlots = mutation({
 
 // Roulette: Spin the wheel
 export const spinRoulette = mutation({
-  args: { 
+  args: {
     betAmount: v.number(),
-    betType: v.string(), // "number", "red", "black", "even", "odd", "1-18", "19-36", "dozen1", "dozen2", "dozen3"
-    betValue: v.optional(v.number()), // specific number if betting on a number
+    betType: v.union(
+      v.literal("number"),
+      v.literal("red"),
+      v.literal("black"),
+      v.literal("even"),
+      v.literal("odd"),
+      v.literal("1-18"),
+      v.literal("19-36"),
+      v.literal("dozen1"),
+      v.literal("dozen2"),
+      v.literal("dozen3")
+    ),
+    betValue: v.optional(v.number()),
+    adminModeEnabled: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (!user) throw new Error("Not authenticated");
     
-    const isAdmin = user.role === "admin";
-    const actualBetAmount = isAdmin && args.betAmount === 0 ? 0 : args.betAmount;
+    const isAdmin = user?.role === "admin";
+    const adminToggle = args.adminModeEnabled === true;
+
+    // Only allow 0 bet for admins when toggle is enabled
+    if (!(isAdmin && adminToggle)) {
+      if (!(args.betAmount > 0)) throw new Error("Invalid bet amount");
+    }
     
-    if (!isAdmin && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
+    const isAdmin2 = user.role === "admin";
+    const actualBetAmount = isAdmin2 && args.betAmount === 0 ? 0 : args.betAmount;
+    
+    if (!isAdmin2 && actualBetAmount <= 0) throw new Error("Bet must be greater than 0");
     
     const credits = user.credits ?? 1000;
-    if (!isAdmin && credits < actualBetAmount) throw new Error("Insufficient credits");
+    if (!isAdmin2 && credits < actualBetAmount) throw new Error("Insufficient credits");
     
     // Deduct bet (skip for admin with 0 bet)
-    if (!(isAdmin && actualBetAmount === 0)) {
+    if (!(isAdmin2 && actualBetAmount === 0)) {
       await ctx.db.patch(user._id, { credits: credits - actualBetAmount });
     }
     
     // Spin the wheel - admin always wins their bet
     let winningNumber;
-    if (isAdmin) {
+    if (isAdmin && adminToggle) {
       // Admin wins: match their bet type
       if (args.betType === "number" && args.betValue !== undefined) {
         winningNumber = args.betValue;

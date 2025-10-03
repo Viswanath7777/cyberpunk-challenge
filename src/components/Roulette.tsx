@@ -51,7 +51,8 @@ export function Roulette({ credits }: { credits: number }) {
         betAmount: isAdmin && adminModeEnabled && betAmount === 0 ? 0 : betAmount,
         betType: selectedBet.type,
         betValue: selectedBet.value,
-      });
+        adminModeEnabled,
+      } as any);
 
       setWinningNumber(result.winningNumber);
       setWinningColor(result.winningColor);
