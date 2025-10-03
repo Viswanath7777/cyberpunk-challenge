@@ -14,11 +14,13 @@ export function StockMarket() {
   const syncMarket = useMutation(api.stocks.syncMarket);
   const buyMutation = useMutation(api.stocks.buy);
   const sellMutation = useMutation(api.stocks.sell);
+  const seedMarket = useMutation(api.stocks.seedTickers);
 
   const [selectedSymbol, setSelectedSymbol] = useState<string>("");
   const [buyShares, setBuyShares] = useState<number>(0);
   const [sellShares, setSellShares] = useState<number>(0);
   const [syncing, setSyncing] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   const selectedTicker = tickers?.find((t) => t.symbol === selectedSymbol);
 
@@ -64,6 +66,18 @@ export function StockMarket() {
     }
   };
 
+  const handleSeed = async () => {
+    setSeeding(true);
+    try {
+      await seedMarket({});
+      toast.success("Market initialized");
+    } catch (e) {
+      toast.error("Failed to initialize market");
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   return (
     <Card className="bg-gray-900/50 border-green-400/30">
       <CardHeader>
@@ -93,32 +107,50 @@ export function StockMarket() {
         <div className="space-y-2">
           <div className="text-sm text-cyan-400 font-bold">Available Stocks</div>
           <div className="grid gap-2">
-            {tickers?.map((ticker) => (
-              <button
-                key={ticker.symbol}
-                onClick={() => setSelectedSymbol(ticker.symbol)}
-                className={`p-3 rounded border text-left transition-all ${
-                  selectedSymbol === ticker.symbol
-                    ? "bg-cyan-400/20 border-cyan-400"
-                    : "bg-gray-800/40 border-gray-700 hover:border-gray-600"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-cyan-400">{ticker.symbol}</div>
-                    <div className="text-xs text-gray-500">{ticker.name}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-green-400 font-bold">{ticker.price.toFixed(2)} CR</div>
-                    {ticker.history.length > 1 && (
-                      <div className="text-xs text-gray-500">
-                        {ticker.history[ticker.history.length - 1].v > ticker.history[0].v ? "📈" : "📉"}
-                      </div>
-                    )}
-                  </div>
+            {tickers && tickers.length === 0 ? (
+              <div className="p-4 rounded border bg-gray-800/40 border-gray-700 text-center space-y-2">
+                <div className="text-sm text-gray-400">
+                  No stocks available yet.
                 </div>
-              </button>
-            ))}
+                <Button
+                  size="sm"
+                  onClick={handleSeed}
+                  disabled={seeding}
+                  className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                >
+                  {seeding ? "Initializing..." : "Initialize Market"}
+                </Button>
+              </div>
+            ) : (
+              <>
+                {tickers?.map((ticker) => (
+                  <button
+                    key={ticker.symbol}
+                    onClick={() => setSelectedSymbol(ticker.symbol)}
+                    className={`p-3 rounded border text-left transition-all ${
+                      selectedSymbol === ticker.symbol
+                        ? "bg-cyan-400/20 border-cyan-400"
+                        : "bg-gray-800/40 border-gray-700 hover:border-gray-600"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-bold text-cyan-400">{ticker.symbol}</div>
+                        <div className="text-xs text-gray-500">{ticker.name}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-green-400 font-bold">{ticker.price.toFixed(2)} CR</div>
+                        {ticker.history.length > 1 && (
+                          <div className="text-xs text-gray-500">
+                            {ticker.history[ticker.history.length - 1].v > ticker.history[0].v ? "📈" : "📉"}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
           </div>
         </div>
 
