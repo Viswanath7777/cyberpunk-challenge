@@ -44,11 +44,7 @@ export function MultiplayerHighLow({ credits }: { credits: number }) {
     }
 
     try {
-      const result = await createOrJoinGame({
-        betAmount: isAdmin && adminModeEnabled && betAmount === 0 ? 0 : betAmount,
-        // Pass toggle to backend for bypass checks
-        adminModeEnabled,
-      } as any);
+      const result = await createOrJoinGame({ betAmount: isAdmin && adminModeEnabled && betAmount === 0 ? 0 : betAmount });
       setGameId(result.gameId);
       
       if (result.joined) {
@@ -66,12 +62,7 @@ export function MultiplayerHighLow({ credits }: { credits: number }) {
     if (!gameId) return;
 
     try {
-      const result = await makeGuess({
-        gameId,
-        guess,
-        // Pass toggle to backend so guesses are only auto-correct when enabled
-        adminModeEnabled,
-      } as any);
+      const result = await makeGuess({ gameId, guess });
       
       if (result.correct) {
         toast.success(`Correct! Streak: ${result.streak} | ${result.multiplier.toFixed(1)}x`);
