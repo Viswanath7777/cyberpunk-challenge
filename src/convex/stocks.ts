@@ -92,9 +92,16 @@ export const syncMarket = mutation({
     for (const ticker of tickers) {
       // Apply extra positive sensitivity to PRNHUB when total credits increase
       const positiveBoost = Math.max(0, mu) * 0.5; // up to +2.5% extra
+
+      // Adjust per-ticker drift:
+      // - PRNHUB: boosted positively with growth
+      // - MMMANU: inversely correlated to total credits (goes down when credits go up, and vice versa)
+      const clamp = (x: number) => Math.max(-0.05, Math.min(0.05, x));
       const tickerMu =
-        (ticker.symbol === "PRNHUB" || ticker.symbol === "MMMANU")
-          ? Math.max(-0.05, Math.min(0.05, mu + positiveBoost))
+        ticker.symbol === "PRNHUB"
+          ? clamp(mu + positiveBoost)
+          : ticker.symbol === "MMMANU"
+          ? clamp(-mu)
           : mu;
 
       const dW = (Math.random() - 0.5) * 2; // random shock in [-1, 1]
