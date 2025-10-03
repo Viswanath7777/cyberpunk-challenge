@@ -21,6 +21,7 @@ import type * as bets from "../bets.js";
 import type * as casino from "../casino.js";
 import type * as challenges from "../challenges.js";
 import type * as characters from "../characters.js";
+import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as loans from "../loans.js";
 import type * as multiplayerHighLow from "../multiplayerHighLow.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   casino: typeof casino;
   challenges: typeof challenges;
   characters: typeof characters;
+  crons: typeof crons;
   http: typeof http;
   loans: typeof loans;
   multiplayerHighLow: typeof multiplayerHighLow;

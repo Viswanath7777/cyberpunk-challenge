@@ -59,6 +59,10 @@ export function Bank() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="text-xs text-cyan-300/80">
+          Earns 2.5% interest per day automatically on your bank balance.
+        </div>
+
         <div className="grid grid-cols-2 gap-4 p-4 bg-gray-800/40 rounded border border-gray-700">
           <div>
             <div className="text-xs text-gray-500 uppercase">Wallet</div>

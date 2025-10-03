@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./users";
 
 // Get user's bank account
@@ -16,7 +16,9 @@ export const getBankAccount = query({
       .withIndex("by_user", (q) => q.eq("userId", user._id))
       .first();
 
-    return account ? { balance: account.balance } : { balance: 0 };
+    return account
+      ? { balance: account.balance, lastInterestAt: account.lastInterestAt }
+      : { balance: 0, lastInterestAt: undefined };
   },
 });
 
@@ -59,6 +61,7 @@ export const deposit = mutation({
       await ctx.db.insert("bankAccounts", {
         userId: user._id,
         balance: args.amount,
+        lastInterestAt: Date.now(),
       });
     }
 
@@ -103,6 +106,46 @@ export const withdraw = mutation({
     await ctx.db.patch(user._id, {
       credits: currentCredits + args.amount,
     });
+
+    return { success: true };
+  },
+});
+
+import { internalAction } from "./_generated/server";
+
+// Add internal mutation to apply daily interest (2.5% per full elapsed day)
+export const applyDailyInterestInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const accounts = await ctx.db.query("bankAccounts").collect();
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const rate = 0.025; // 2.5% per day
+
+    for (const account of accounts) {
+      const last = account.lastInterestAt ?? (now - dayMs);
+      const daysElapsed = Math.floor((now - last) / dayMs);
+      if (daysElapsed <= 0) continue;
+
+      const startingBalance = account.balance;
+      if (startingBalance <= 0) {
+        // Update lastInterestAt forward to avoid repeatedly accruing for past days
+        await ctx.db.patch(account._id, {
+          lastInterestAt: last + daysElapsed * dayMs,
+        });
+        continue;
+      }
+
+      const factor = Math.pow(1 + rate, daysElapsed);
+      const newBalanceRaw = startingBalance * factor;
+      // Round to 2 decimals (credits may be fractional in this app)
+      const newBalance = Math.round(newBalanceRaw * 100) / 100;
+
+      await ctx.db.patch(account._id, {
+        balance: newBalance,
+        lastInterestAt: last + daysElapsed * dayMs,
+      });
+    }
 
     return { success: true };
   },

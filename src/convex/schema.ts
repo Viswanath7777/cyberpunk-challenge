@@ -210,6 +210,7 @@ const schema = defineSchema(
     bankAccounts: defineTable({
       userId: v.id("users"),
       balance: v.number(),
+      lastInterestAt: v.optional(v.number()),
     }).index("by_user", ["userId"]),
 
     // Stock tickers table
