@@ -112,6 +112,11 @@ export default function Dashboard() {
     selectedChallengeForSubs ? ({ challengeId: selectedChallengeForSubs } as any) : undefined
   ) as any[] | undefined;
 
+  // Add: Investment calculator state
+  const [invAmount, setInvAmount] = useState<number>(100);
+  const [invMonths, setInvMonths] = useState<number>(6);
+  const [invType, setInvType] = useState<"fixed" | "index" | "crypto">("fixed");
+
   // Helper to evenly distribute percentage
   const distributeEvenly = (names: string[]) => {
     if (names.length === 0) return {};
@@ -428,6 +433,9 @@ export default function Dashboard() {
             <TabsTrigger value="casino" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
               <Gamepad2 className="w-4 h-4 mr-2" />
               Casino
+            </TabsTrigger>
+            <TabsTrigger value="investments" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+              💹 Investments
             </TabsTrigger>
           </TabsList>
 
@@ -1220,6 +1228,85 @@ export default function Dashboard() {
                 <div className="text-center py-8 text-gray-400 text-sm">
                   Game history coming soon...
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="investments" className="space-y-6">
+            <Card className="bg-gray-900/50 border-cyan-400/30">
+              <CardHeader>
+                <CardTitle className="text-cyan-400">Investments</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Simulate returns before committing credits. This is a calculator and does not affect your balance.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <Label htmlFor="inv-amount" className="text-cyan-400">Amount (CR)</Label>
+                    <Input
+                      id="inv-amount"
+                      type="number"
+                      min={0}
+                      value={invAmount || ""}
+                      onChange={(e) => setInvAmount(parseInt(e.target.value) || 0)}
+                      className="bg-gray-800 border-gray-600 text-white"
+                      placeholder="100"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="inv-months" className="text-cyan-400">Term (months)</Label>
+                    <Input
+                      id="inv-months"
+                      type="number"
+                      min={1}
+                      value={invMonths || ""}
+                      onChange={(e) => setInvMonths(parseInt(e.target.value) || 1)}
+                      className="bg-gray-800 border-gray-600 text-white"
+                      placeholder="6"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-cyan-400">Type</Label>
+                    <Select value={invType} onValueChange={(v) => setInvType(v as "fixed" | "index" | "crypto")}>
+                      <SelectTrigger className="bg-gray-900 border-gray-700 text-white">
+                        <SelectValue placeholder="Investment Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fixed Income (2%/mo)</SelectItem>
+                        <SelectItem value="index">Index Fund (4%/mo)</SelectItem>
+                        <SelectItem value="crypto">Crypto (10%/mo)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Projection */}
+                <Separator className="bg-cyan-400/20" />
+                {(() => {
+                  const rate = invType === "fixed" ? 0.02 : invType === "index" ? 0.04 : 0.10;
+                  const projected = Math.floor((invAmount || 0) * Math.pow(1 + rate, invMonths || 0));
+                  const gain = projected - (invAmount || 0);
+                  return (
+                    <div className="p-4 bg-gray-800/40 rounded border border-gray-700">
+                      <div className="text-sm text-gray-300 mb-2">Projection</div>
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="text-cyan-400">
+                          Type: <span className="text-white uppercase">{invType}</span>
+                        </div>
+                        <div className="text-green-400">
+                          Projected Value: <span className="font-bold">{isNaN(projected) ? 0 : projected} CR</span>
+                        </div>
+                        <div className={gain >= 0 ? "text-green-400" : "text-red-400"}>
+                          Gain/Loss: <span className="font-bold">{isNaN(gain) ? 0 : gain} CR</span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        Note: Monthly rates are simplified for simulation. This does not execute a real investment.
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </TabsContent>
