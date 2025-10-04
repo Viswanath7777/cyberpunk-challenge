@@ -143,7 +143,7 @@ export function RealEstate() {
           {/* Market Properties Tab */}
           <TabsContent value="market" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {properties?.filter((p: any) => p.status === "available").map((property: any) => {
+              {properties?.filter((p: any) => p.status === "available" && !p.ownerId).map((property: any) => {
                 return (
                   <Card key={property._id} className="bg-gray-800/50 border-gray-700 hover:border-cyan-400/50 transition-all">
                     <CardHeader>
@@ -186,7 +186,7 @@ export function RealEstate() {
                 );
               })}
             </div>
-            {(!properties || properties.filter((p: any) => p.status === "available").length === 0) && (
+            {(!properties || properties.filter((p: any) => p.status === "available" && !p.ownerId).length === 0) && (
               <div className="text-center py-8 text-gray-400">No properties available on the market</div>
             )}
           </TabsContent>
