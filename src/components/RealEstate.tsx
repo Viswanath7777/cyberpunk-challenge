@@ -100,6 +100,19 @@ export function RealEstate() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Re-initialize Button */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-cyan-400">Real Estate Market</h2>
+        <Button
+          onClick={handleSeed}
+          disabled={seeding}
+          variant="outline"
+          className="bg-cyan-400/10 border-cyan-400 text-cyan-400 hover:bg-cyan-400/20"
+        >
+          {seeding ? "Re-initializing..." : "Re-initialize Market"}
+        </Button>
+      </div>
+
       {/* Market Events Feed */}
       <Card className="bg-gray-900/50 border-yellow-400/30">
         <CardHeader>

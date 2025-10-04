@@ -152,8 +152,11 @@ export const sellProperty = mutation({
 export const seedProperties = mutation({
   args: {},
   handler: async (ctx) => {
-    const existing = await ctx.db.query("properties").first();
-    if (existing) throw new Error("Properties already seeded");
+    // Delete all existing properties to allow re-initialization
+    const existing = await ctx.db.query("properties").collect();
+    for (const prop of existing) {
+      await ctx.db.delete(prop._id);
+    }
     
     const properties = [
       {
