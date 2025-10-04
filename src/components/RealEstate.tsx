@@ -143,19 +143,15 @@ export function RealEstate() {
           {/* Market Properties Tab */}
           <TabsContent value="market" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {properties?.map((property: any) => {
-                const isOwned = property.status === "owned" && property.ownerId;
+              {properties?.filter((p: any) => p.status === "available").map((property: any) => {
                 return (
-                  <Card key={property._id} className={`bg-gray-800/50 border-gray-700 hover:border-cyan-400/50 transition-all ${isOwned ? 'opacity-60' : ''}`}>
+                  <Card key={property._id} className="bg-gray-800/50 border-gray-700 hover:border-cyan-400/50 transition-all">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
                           <CardTitle className="text-cyan-400 text-lg">{property.name}</CardTitle>
                           <CardDescription className="text-gray-400 text-sm">
                             {property.location}
-                            {isOwned && property.ownerId && (
-                              <span className="ml-2 text-yellow-400 text-xs">• Owned</span>
-                            )}
                           </CardDescription>
                         </div>
                         <Badge variant="outline" className="border-green-500 text-green-400">
@@ -180,10 +176,9 @@ export function RealEstate() {
                         <div className="text-2xl font-bold text-green-400">{property.currentPrice} CR</div>
                         <Button
                           onClick={() => handleBuy(property._id)}
-                          disabled={isOwned}
-                          className={`${isOwned ? 'bg-gray-600 border-gray-500 text-gray-400 cursor-not-allowed' : 'bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30'}`}
+                          className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
                         >
-                          {isOwned ? 'Owned' : 'Buy'}
+                          Buy
                         </Button>
                       </div>
                     </CardContent>
@@ -191,7 +186,7 @@ export function RealEstate() {
                 );
               })}
             </div>
-            {(!properties || properties.length === 0) && (
+            {(!properties || properties.filter((p: any) => p.status === "available").length === 0) && (
               <div className="text-center py-8 text-gray-400">No properties available on the market</div>
             )}
           </TabsContent>
