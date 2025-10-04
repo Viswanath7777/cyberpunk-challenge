@@ -37,9 +37,9 @@ export function RealEstate() {
     }
   };
 
-  const handleBuy = async (propertyId: string) => {
+  const handleBuy = async (propertyId: any) => {
     try {
-      await buyProperty({ propertyId: propertyId as any });
+      await buyProperty({ propertyId });
       toast.success("Property purchased!");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to purchase property");
@@ -87,8 +87,6 @@ export function RealEstate() {
       toast.error(e instanceof Error ? e.message : "Failed to delist");
     }
   };
-
-  const availableProperties = properties?.filter((p: any) => p.status === "available") || [];
 
   return (
     <Card className="bg-gray-900/50 border-cyan-400/30">
@@ -145,46 +143,55 @@ export function RealEstate() {
           {/* Market Properties Tab */}
           <TabsContent value="market" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {availableProperties.map((property: any) => (
-                <Card key={property._id} className="bg-gray-800/50 border-gray-700 hover:border-cyan-400/50 transition-all">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-cyan-400 text-lg">{property.name}</CardTitle>
-                        <CardDescription className="text-gray-400 text-sm">{property.location}</CardDescription>
-                      </div>
-                      <Badge variant="outline" className="border-green-500 text-green-400">
-                        {property.propertyType}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="text-sm text-gray-300">{property.description}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {property.amenities.slice(0, 3).map((amenity: string) => (
-                        <Badge key={amenity} variant="secondary" className="text-xs">
-                          {amenity}
+              {properties?.filter((p: any) => p.status === "available" || p.status === "owned").map((property: any) => {
+                const isOwned = property.status === "owned";
+                return (
+                  <Card key={property._id} className={`bg-gray-800/50 border-gray-700 hover:border-cyan-400/50 transition-all ${isOwned ? 'opacity-60' : ''}`}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-cyan-400 text-lg">{property.name}</CardTitle>
+                          <CardDescription className="text-gray-400 text-sm">
+                            {property.location}
+                            {isOwned && property.ownerId && (
+                              <span className="ml-2 text-yellow-400 text-xs">• Owned</span>
+                            )}
+                          </CardDescription>
+                        </div>
+                        <Badge variant="outline" className="border-green-500 text-green-400">
+                          {property.propertyType}
                         </Badge>
-                      ))}
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-400">
-                      <span>{property.bedrooms} BD • {property.bathrooms} BA</span>
-                      <span>{property.sqft} sqft</span>
-                    </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-700">
-                      <div className="text-2xl font-bold text-green-400">{property.currentPrice} CR</div>
-                      <Button
-                        onClick={() => handleBuy(property._id)}
-                        className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
-                      >
-                        Buy
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="text-sm text-gray-300">{property.description}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {property.amenities.slice(0, 3).map((amenity: string) => (
+                          <Badge key={amenity} variant="secondary" className="text-xs">
+                            {amenity}
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-gray-400">
+                        <span>{property.bedrooms} BD • {property.bathrooms} BA</span>
+                        <span>{property.sqft} sqft</span>
+                      </div>
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-700">
+                        <div className="text-2xl font-bold text-green-400">{property.currentPrice} CR</div>
+                        <Button
+                          onClick={() => handleBuy(property._id)}
+                          disabled={isOwned}
+                          className={`${isOwned ? 'bg-gray-600 border-gray-500 text-gray-400 cursor-not-allowed' : 'bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30'}`}
+                        >
+                          {isOwned ? 'Owned' : 'Buy'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
-            {availableProperties.length === 0 && (
+            {(!properties || properties.length === 0) && (
               <div className="text-center py-8 text-gray-400">No properties available on the market</div>
             )}
           </TabsContent>
