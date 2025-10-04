@@ -143,8 +143,8 @@ export function RealEstate() {
           {/* Market Properties Tab */}
           <TabsContent value="market" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              {properties?.filter((p: any) => p.status === "available" || p.status === "owned").map((property: any) => {
-                const isOwned = property.status === "owned";
+              {properties?.map((property: any) => {
+                const isOwned = property.status === "owned" && property.ownerId;
                 return (
                   <Card key={property._id} className={`bg-gray-800/50 border-gray-700 hover:border-cyan-400/50 transition-all ${isOwned ? 'opacity-60' : ''}`}>
                     <CardHeader>
