@@ -234,9 +234,56 @@ const schema = defineSchema(
     // Metrics table to store app-wide simple key/value metrics (e.g., last total credits)
     metrics: defineTable({
       key: v.string(),
-      value: v.number(),
+      value: v.any(),
       updatedAt: v.number(),
     }).index("by_key", ["key"]),
+
+    properties: defineTable({
+      name: v.string(),
+      location: v.string(),
+      propertyType: v.string(),
+      basePrice: v.number(),
+      currentPrice: v.number(),
+      amenities: v.array(v.string()),
+      bedrooms: v.number(),
+      bathrooms: v.number(),
+      sqft: v.number(),
+      description: v.string(),
+      imageUrl: v.optional(v.string()),
+      ownerId: v.optional(v.id("users")),
+      purchasedAt: v.optional(v.number()),
+      priceHistory: v.array(
+        v.object({
+          timestamp: v.number(),
+          price: v.number(),
+          event: v.optional(v.string()),
+        })
+      ),
+      status: v.string(), // "available" | "owned"
+    }).index("by_status", ["status"])
+      .index("by_owner", ["ownerId"])
+      .index("by_location", ["location"]),
+
+    realEstateEvents: defineTable({
+      eventType: v.string(), // "infrastructure" | "crime" | "development" | "natural" | "economic"
+      affectedArea: v.string(),
+      description: v.string(),
+      priceImpact: v.number(), // percentage change
+      occurredAt: v.number(),
+      duration: v.number(), // days
+    }).index("by_area", ["affectedArea"])
+      .index("by_occurred", ["occurredAt"]),
+
+    propertyTransactions: defineTable({
+      propertyId: v.id("properties"),
+      sellerId: v.optional(v.id("users")),
+      buyerId: v.id("users"),
+      price: v.number(),
+      transactionDate: v.number(),
+    }).index("by_property", ["propertyId"])
+      .index("by_buyer", ["buyerId"])
+      .index("by_seller", ["sellerId"]),
+
   },
   {
     schemaValidation: false,

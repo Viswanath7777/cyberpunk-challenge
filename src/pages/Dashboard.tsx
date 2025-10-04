@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { motion } from "framer-motion";
-import { Trophy, Zap, Target, Crown, LogOut, Settings, Coins, Plus, Gamepad2 } from "lucide-react";
+import { Trophy, Zap, Target, Crown, LogOut, Settings, Coins, Plus, Gamepad2, Building2 } from "lucide-react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -23,6 +23,7 @@ import { Roulette } from "@/components/Roulette";
 import { HorseRacing } from "@/components/HorseRacing";
 import { Bank } from "@/components/Bank";
 import { StockMarket } from "@/components/StockMarket";
+import { RealEstate } from "@/components/RealEstate";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -434,6 +435,10 @@ export default function Dashboard() {
             <TabsTrigger value="finance" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
               <Coins className="w-4 h-4 mr-2" />
               Finance
+            </TabsTrigger>
+            <TabsTrigger value="property" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+              <Building2 className="w-4 h-4 mr-2" />
+              Property
             </TabsTrigger>
           </TabsList>
 
@@ -1238,6 +1243,15 @@ export default function Dashboard() {
             >
               <Bank />
               <StockMarket />
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="property" className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <RealEstate />
             </motion.div>
           </TabsContent>
         </Tabs>
