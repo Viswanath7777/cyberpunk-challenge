@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { api } from "@/convex/_generated/api";
 import { useQuery, useMutation } from "convex/react";
 import { motion } from "framer-motion";
-import { Plus, Check, X, ArrowLeft, Crown, Zap } from "lucide-react";
+import { Plus, Check, X, ArrowLeft, Crown, Zap, Building2, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { toast } from "sonner";
@@ -26,6 +26,9 @@ export default function Admin() {
   const createBetEvent = useMutation(api.bets.createEvent);
   const closeBetEvent = useMutation(api.bets.closeEvent);
   const resolveBetEvent = useMutation(api.bets.resolveEvent);
+  const allProperties = useQuery(api.realEstate.getAllPropertiesAdmin);
+  const adminUpdatePrice = useMutation(api.realEstate.adminUpdatePrice);
+  const adminTriggerEvent = useMutation(api.realEstate.adminTriggerEvent);
 
   const [isCreating, setIsCreating] = useState(false);
   const [newChallenge, setNewChallenge] = useState({
@@ -42,6 +45,15 @@ export default function Admin() {
     durationHours: 24,
   });
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
+  const [propertyPriceUpdates, setPropertyPriceUpdates] = useState<Record<string, number>>({});
+  const [priceReason, setPriceReason] = useState<Record<string, string>>({});
+  const [marketEvent, setMarketEvent] = useState({
+    eventType: "",
+    affectedArea: "",
+    description: "",
+    priceImpact: 0,
+    duration: 0,
+  });
 
   // Redirect if not admin
   if (user?.role !== "admin") {
@@ -160,6 +172,46 @@ export default function Admin() {
     }
   };
 
+  const handleUpdatePropertyPrice = async (propertyId: string) => {
+    const newPrice = propertyPriceUpdates[propertyId];
+    if (!newPrice || newPrice < 1000) {
+      toast.error("Enter a valid price (min 1000 CR)");
+      return;
+    }
+    try {
+      await adminUpdatePrice({
+        propertyId: propertyId as any,
+        newPrice,
+        reason: priceReason[propertyId] || undefined,
+      });
+      toast.success("Property price updated!");
+      setPropertyPriceUpdates((prev) => ({ ...prev, [propertyId]: 0 }));
+      setPriceReason((prev) => ({ ...prev, [propertyId]: "" }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update price");
+    }
+  };
+
+  const handleTriggerMarketEvent = async () => {
+    if (!marketEvent.eventType || !marketEvent.affectedArea || !marketEvent.description) {
+      toast.error("Fill in all event fields");
+      return;
+    }
+    try {
+      await adminTriggerEvent(marketEvent as any);
+      toast.success("Market event triggered!");
+      setMarketEvent({
+        eventType: "",
+        affectedArea: "",
+        description: "",
+        priceImpact: 0,
+        duration: 0,
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to trigger event");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-cyan-400 font-mono">
       {/* Cyberpunk grid background */}
@@ -201,8 +253,7 @@ export default function Admin() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8 relative space-y-8">
-        {/* Create Challenge Section */}
+      <main className="container mx-auto px-4 py-8 relative">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -543,6 +594,139 @@ export default function Admin() {
             </CardContent>
           </Card>
         </motion.div>
+
+        {/* Real Estate Management Card */}
+        <Card className="bg-gray-900/50 border-cyan-400/30">
+          <CardHeader>
+            <CardTitle className="text-cyan-400 flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Real Estate Management
+            </CardTitle>
+            <CardDescription className="text-gray-400">
+              Manage property prices and trigger market events
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Trigger Market Event */}
+            <div className="p-4 bg-gray-800/50 rounded border border-purple-500/30 space-y-3">
+              <div className="text-sm font-bold text-purple-400">Trigger Market Event</div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="eventType" className="text-cyan-400">Event Type</Label>
+                  <Input
+                    id="eventType"
+                    value={marketEvent.eventType}
+                    onChange={(e) => setMarketEvent((p) => ({ ...p, eventType: e.target.value }))}
+                    placeholder="e.g., infrastructure"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="affectedArea" className="text-cyan-400">Affected Area</Label>
+                  <Input
+                    id="affectedArea"
+                    value={marketEvent.affectedArea}
+                    onChange={(e) => setMarketEvent((p) => ({ ...p, affectedArea: e.target.value }))}
+                    placeholder="e.g., Bandra"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <Label htmlFor="eventDesc" className="text-cyan-400">Description</Label>
+                  <Input
+                    id="eventDesc"
+                    value={marketEvent.description}
+                    onChange={(e) => setMarketEvent((p) => ({ ...p, description: e.target.value }))}
+                    placeholder="e.g., New metro line announced"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="priceImpact" className="text-cyan-400">Price Impact (%)</Label>
+                  <Input
+                    id="priceImpact"
+                    type="number"
+                    value={marketEvent.priceImpact}
+                    onChange={(e) => setMarketEvent((p) => ({ ...p, priceImpact: parseFloat(e.target.value) || 0 }))}
+                    placeholder="e.g., 15 or -10"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="duration" className="text-cyan-400">Duration (days)</Label>
+                  <Input
+                    id="duration"
+                    type="number"
+                    value={marketEvent.duration}
+                    onChange={(e) => setMarketEvent((p) => ({ ...p, duration: parseInt(e.target.value) || 0 }))}
+                    placeholder="0 for instant"
+                    className="bg-gray-900 border-gray-700 text-white"
+                  />
+                </div>
+              </div>
+              <Button
+                onClick={handleTriggerMarketEvent}
+                className="w-full bg-purple-400/20 border border-purple-400 text-purple-400 hover:bg-purple-400/30"
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Trigger Event
+              </Button>
+            </div>
+
+            {/* Property Price Management */}
+            <div className="space-y-3">
+              <div className="text-sm font-bold text-cyan-400">Property Price Management</div>
+              <div className="max-h-96 overflow-y-auto space-y-2">
+                {(allProperties || []).map((property: any) => (
+                  <div key={property._id} className="p-3 bg-gray-800/30 rounded border border-gray-700 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm text-cyan-400 font-bold">{property.name}</div>
+                        <div className="text-xs text-gray-500">{property.location} • Owner: {property.ownerName}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-green-400 font-bold">{property.currentPrice} CR</div>
+                        <div className="text-xs text-gray-500">{property.status}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        placeholder="New price"
+                        value={propertyPriceUpdates[property._id] || ""}
+                        onChange={(e) =>
+                          setPropertyPriceUpdates((prev) => ({
+                            ...prev,
+                            [property._id]: parseInt(e.target.value) || 0,
+                          }))
+                        }
+                        className="bg-gray-900 border-gray-700 text-white text-sm"
+                      />
+                      <Input
+                        placeholder="Reason (optional)"
+                        value={priceReason[property._id] || ""}
+                        onChange={(e) =>
+                          setPriceReason((prev) => ({
+                            ...prev,
+                            [property._id]: e.target.value,
+                          }))
+                        }
+                        className="bg-gray-900 border-gray-700 text-white text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={() => handleUpdatePropertyPrice(property._id)}
+                        className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                      >
+                        Update
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </main>
 
       <style>{`

@@ -250,19 +250,24 @@ const schema = defineSchema(
       sqft: v.number(),
       description: v.string(),
       imageUrl: v.optional(v.string()),
+      status: v.union(v.literal("available"), v.literal("owned")),
       ownerId: v.optional(v.id("users")),
       purchasedAt: v.optional(v.number()),
       priceHistory: v.array(
         v.object({
-          timestamp: v.number(),
           price: v.number(),
-          event: v.optional(v.string()),
+          timestamp: v.number(),
+          event: v.string(),
         })
       ),
-      status: v.string(), // "available" | "owned"
-    }).index("by_status", ["status"])
+      // New fields for player marketplace
+      listedForSale: v.boolean(),
+      askingPrice: v.optional(v.number()),
+      listedAt: v.optional(v.number()),
+    })
+      .index("by_status", ["status"])
       .index("by_owner", ["ownerId"])
-      .index("by_location", ["location"]),
+      .index("by_listed", ["listedForSale"]),
 
     realEstateEvents: defineTable({
       eventType: v.string(), // "infrastructure" | "crime" | "development" | "natural" | "economic"
@@ -276,11 +281,17 @@ const schema = defineSchema(
 
     propertyTransactions: defineTable({
       propertyId: v.id("properties"),
+      buyerId: v.optional(v.id("users")),
       sellerId: v.optional(v.id("users")),
-      buyerId: v.id("users"),
       price: v.number(),
       transactionDate: v.number(),
-    }).index("by_property", ["propertyId"])
+      transactionType: v.union(
+        v.literal("market_purchase"),
+        v.literal("player_sale"),
+        v.literal("market_sale")
+      ),
+    })
+      .index("by_property", ["propertyId"])
       .index("by_buyer", ["buyerId"])
       .index("by_seller", ["sellerId"]),
 

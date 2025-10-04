@@ -3,415 +3,389 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, TrendingUp, TrendingDown, Home, Bed, Bath, Maximize, MapPin, Coins } from "lucide-react";
+import { Building2, TrendingUp, TrendingDown, Users, Store } from "lucide-react";
 import { toast } from "sonner";
-import type { Id } from "@/convex/_generated/dataModel";
 
 export function RealEstate() {
   const properties = useQuery(api.realEstate.listProperties);
-  const userProperties = useQuery(api.realEstate.getUserProperties) as 
+  const userProperties = useQuery(api.realEstate.getUserProperties) as
     | { properties: any[]; totalValue: number; totalInvested: number; profitLoss: number }
     | undefined;
+  const playerListings = useQuery(api.realEstate.getPlayerListings);
   const marketEvents = useQuery(api.realEstate.getMarketEvents);
+
   const buyProperty = useMutation(api.realEstate.buyProperty);
   const sellProperty = useMutation(api.realEstate.sellProperty);
+  const buyFromPlayer = useMutation(api.realEstate.buyFromPlayer);
+  const listForSale = useMutation(api.realEstate.listPropertyForSale);
+  const delistProperty = useMutation(api.realEstate.delistProperty);
   const seedProperties = useMutation(api.realEstate.seedProperties);
-  const simulateEvent = useMutation(api.realEstate.simulateMarketEvent);
 
-  const [selectedProperty, setSelectedProperty] = useState<any>(null);
-  const [sellPrice, setSellPrice] = useState<number>(0);
-  const [seeding, setSeeding] = useState(false);
+  const [askingPrices, setAskingPrices] = useState<Record<string, number>>({});
 
-  const handleBuy = async (propertyId: Id<"properties">) => {
+  const handleSeed = async () => {
     try {
-      await buyProperty({ propertyId });
-      toast.success("Property purchased successfully!");
-      setSelectedProperty(null);
+      await seedProperties();
+      toast.success("Real estate market initialized!");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to buy property");
+      toast.error(e instanceof Error ? e.message : "Failed to initialize market");
     }
   };
 
-  const handleSell = async (propertyId: Id<"properties">) => {
+  const handleBuy = async (propertyId: string) => {
     try {
-      await sellProperty({ 
-        propertyId, 
-        askingPrice: sellPrice > 0 ? sellPrice : undefined 
-      });
-      toast.success("Property sold successfully!");
-      setSelectedProperty(null);
-      setSellPrice(0);
+      await buyProperty({ propertyId: propertyId as any });
+      toast.success("Property purchased!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to purchase property");
+    }
+  };
+
+  const handleSell = async (propertyId: string) => {
+    try {
+      await sellProperty({ propertyId: propertyId as any });
+      toast.success("Property sold back to market!");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to sell property");
     }
   };
 
-  const handleSeed = async () => {
-    setSeeding(true);
+  const handleBuyFromPlayer = async (propertyId: string) => {
     try {
-      await seedProperties({});
-      toast.success("Real estate market initialized!");
+      await buyFromPlayer({ propertyId: propertyId as any });
+      toast.success("Property purchased from player!");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to seed properties");
-    } finally {
-      setSeeding(false);
+      toast.error(e instanceof Error ? e.message : "Failed to purchase");
     }
   };
 
-  const handleSimulateEvent = async () => {
+  const handleListForSale = async (propertyId: string) => {
+    const price = askingPrices[propertyId];
+    if (!price || price < 1000) {
+      toast.error("Enter a valid asking price (min 1000 CR)");
+      return;
+    }
     try {
-      const event = await simulateEvent({});
-      toast.success(`Market event: ${event.description}`);
+      await listForSale({ propertyId: propertyId as any, askingPrice: price });
+      toast.success("Property listed for sale!");
+      setAskingPrices((prev) => ({ ...prev, [propertyId]: 0 }));
     } catch (e) {
-      toast.error("Failed to simulate event");
+      toast.error(e instanceof Error ? e.message : "Failed to list property");
     }
   };
 
-  const getPriceChange = (property: any) => {
-    if (property.priceHistory.length < 2) return 0;
-    const current = property.currentPrice;
-    const previous = property.priceHistory[property.priceHistory.length - 2].price;
-    return ((current - previous) / previous) * 100;
+  const handleDelist = async (propertyId: string) => {
+    try {
+      await delistProperty({ propertyId: propertyId as any });
+      toast.success("Property delisted!");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delist");
+    }
   };
 
-  if (!properties || properties.length === 0) {
-    return (
-      <Card className="bg-gray-900/50 border-cyan-400/30">
-        <CardContent className="p-8 text-center space-y-4">
-          <Building2 className="w-16 h-16 mx-auto text-cyan-400" />
-          <div className="text-gray-400">No properties available. Initialize the market.</div>
-          <Button
-            onClick={handleSeed}
-            disabled={seeding}
-            className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
-          >
-            {seeding ? "Initializing..." : "Initialize Real Estate Market"}
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const availableProperties = properties.filter((p) => p.status === "available");
+  const availableProperties = properties?.filter((p: any) => p.status === "available") || [];
 
   return (
-    <div className="space-y-6">
-      {/* Header with Re-initialize Button */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold text-cyan-400">Real Estate Market</h2>
-        <Button
-          onClick={handleSeed}
-          disabled={seeding}
-          variant="outline"
-          className="bg-cyan-400/10 border-cyan-400 text-cyan-400 hover:bg-cyan-400/20"
-        >
-          {seeding ? "Re-initializing..." : "Re-initialize Market"}
-        </Button>
-      </div>
-
-      {/* Market Events Feed */}
-      <Card className="bg-gray-900/50 border-yellow-400/30">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-yellow-400">Market Events</CardTitle>
-              <CardDescription className="text-gray-400">Recent events affecting property values</CardDescription>
-            </div>
-            <Button
-              size="sm"
-              onClick={handleSimulateEvent}
-              className="bg-yellow-400/20 border border-yellow-400 text-yellow-400 hover:bg-yellow-400/30"
-            >
-              Simulate Event
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {marketEvents?.slice(0, 5).map((event) => (
-            <div key={event._id} className="p-3 bg-gray-800/40 rounded border border-gray-700 flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <Badge variant={event.priceImpact > 0 ? "default" : "destructive"}>
-                    {event.affectedArea}
-                  </Badge>
-                  <span className="text-xs text-gray-500 uppercase">{event.eventType}</span>
-                </div>
-                <div className="text-sm text-gray-300 mt-1">{event.description}</div>
-              </div>
-              <div className={`flex items-center gap-1 ${event.priceImpact > 0 ? "text-green-400" : "text-red-400"}`}>
-                {event.priceImpact > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                <span className="text-sm font-bold">{event.priceImpact > 0 ? "+" : ""}{event.priceImpact}%</span>
-              </div>
-            </div>
-          ))}
-          {(!marketEvents || marketEvents.length === 0) && (
-            <div className="text-center py-4 text-gray-500 text-sm">No recent events</div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* User Portfolio */}
-      {userProperties && userProperties.properties && userProperties.properties.length > 0 && (
-        <Card className="bg-gray-900/50 border-green-400/30">
-          <CardHeader>
-            <CardTitle className="text-green-400">My Properties</CardTitle>
+    <Card className="bg-gray-900/50 border-cyan-400/30">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-cyan-400 flex items-center gap-2">
+              <Building2 className="w-5 h-5" />
+              Real Estate Market
+            </CardTitle>
             <CardDescription className="text-gray-400">
-              Portfolio Value: <span className="text-green-400 font-bold">{userProperties.totalValue} CR</span>
-              {" • "}
-              P/L: <span className={userProperties.profitLoss >= 0 ? "text-green-400" : "text-red-400"}>
-                {userProperties.profitLoss >= 0 ? "+" : ""}{userProperties.profitLoss} CR
-              </span>
+              Buy properties, trade with players, and build your empire
             </CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2">
-            {userProperties.properties.map((property: any) => {
-              const purchasePrice = property.priceHistory.find((h: any) => h.event === "Purchased")?.price || property.basePrice;
-              const profit = property.currentPrice - purchasePrice;
-              const priceChange = getPriceChange(property);
+          </div>
+          <div className="flex gap-2">
+            {(!properties || properties.length === 0) && (
+              <Button
+                onClick={handleSeed}
+                className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+              >
+                Initialize Real Estate Market
+              </Button>
+            )}
+            {properties && properties.length > 0 && (
+              <Button
+                onClick={handleSeed}
+                size="sm"
+                variant="outline"
+                className="border-pink-500 text-pink-500 hover:bg-pink-500/10"
+              >
+                Re-initialize Market
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="market" className="space-y-4">
+          <TabsList className="bg-gray-800/50 border border-gray-700">
+            <TabsTrigger value="market" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+              <Store className="w-4 h-4 mr-2" />
+              Market
+            </TabsTrigger>
+            <TabsTrigger value="players" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+              <Users className="w-4 h-4 mr-2" />
+              Player Listings ({playerListings?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="portfolio" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+              <Building2 className="w-4 h-4 mr-2" />
+              My Properties ({userProperties?.properties?.length || 0})
+            </TabsTrigger>
+          </TabsList>
 
-              return (
+          {/* Market Properties Tab */}
+          <TabsContent value="market" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {availableProperties.map((property: any) => (
                 <Card key={property._id} className="bg-gray-800/50 border-gray-700 hover:border-cyan-400/50 transition-all">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
-                        <CardTitle className="text-cyan-400 text-base">{property.name}</CardTitle>
-                        <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                          <MapPin className="w-3 h-3" />
-                          {property.location}
-                        </div>
+                        <CardTitle className="text-cyan-400 text-lg">{property.name}</CardTitle>
+                        <CardDescription className="text-gray-400 text-sm">{property.location}</CardDescription>
                       </div>
-                      <Home className="w-5 h-5 text-cyan-400" />
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Current Value:</span>
-                      <span className="text-green-400 font-bold">{property.currentPrice} CR</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Purchase Price:</span>
-                      <span className="text-gray-300">{purchasePrice} CR</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-400">Profit/Loss:</span>
-                      <span className={profit >= 0 ? "text-green-400" : "text-red-400"}>
-                        {profit >= 0 ? "+" : ""}{profit} CR
-                      </span>
-                    </div>
-                    {priceChange !== 0 && (
-                      <div className="flex items-center gap-1 text-xs">
-                        {priceChange > 0 ? (
-                          <TrendingUp className="w-3 h-3 text-green-400" />
-                        ) : (
-                          <TrendingDown className="w-3 h-3 text-red-400" />
-                        )}
-                        <span className={priceChange > 0 ? "text-green-400" : "text-red-400"}>
-                          {priceChange > 0 ? "+" : ""}{priceChange.toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          className="w-full bg-red-500/20 border border-red-500 text-red-400 hover:bg-red-500/30"
-                          onClick={() => {
-                            setSelectedProperty(property);
-                            setSellPrice(property.currentPrice);
-                          }}
-                        >
-                          Sell Property
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-gray-900 border-cyan-400/30">
-                        <DialogHeader>
-                          <DialogTitle className="text-cyan-400">Sell {property.name}</DialogTitle>
-                          <DialogDescription className="text-gray-400">
-                            Set your asking price or sell at current market value
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <Label className="text-cyan-400">Asking Price (CR)</Label>
-                            <Input
-                              type="number"
-                              value={sellPrice}
-                              onChange={(e) => setSellPrice(parseInt(e.target.value) || 0)}
-                              className="bg-gray-800 border-gray-600 text-white"
-                            />
-                            <div className="text-xs text-gray-500 mt-1">
-                              Current market value: {property.currentPrice} CR
-                            </div>
-                          </div>
-                          <Button
-                            onClick={() => handleSell(property._id)}
-                            className="w-full bg-red-500/20 border border-red-500 text-red-400 hover:bg-red-500/30"
-                          >
-                            Confirm Sale
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Available Properties */}
-      <Card className="bg-gray-900/50 border-cyan-400/30">
-        <CardHeader>
-          <CardTitle className="text-cyan-400">Available Properties</CardTitle>
-          <CardDescription className="text-gray-400">Browse and purchase properties across Mumbai</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {availableProperties.map((property) => {
-            const priceChange = getPriceChange(property);
-
-            return (
-              <Card key={property._id} className="bg-gray-800/50 border-gray-700 hover:border-cyan-400/50 transition-all">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-cyan-400 text-base">{property.name}</CardTitle>
-                      <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
-                        <MapPin className="w-3 h-3" />
-                        {property.location}
-                      </div>
-                      <Badge variant="outline" className="mt-2 text-xs">
+                      <Badge variant="outline" className="border-green-500 text-green-400">
                         {property.propertyType}
                       </Badge>
                     </div>
-                    <Building2 className="w-5 h-5 text-cyan-400" />
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                      <Coins className="w-4 h-4 text-green-400" />
-                      <span className="text-green-400 font-bold">{property.currentPrice} CR</span>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-sm text-gray-300">{property.description}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {property.amenities.slice(0, 3).map((amenity: string) => (
+                        <Badge key={amenity} variant="secondary" className="text-xs">
+                          {amenity}
+                        </Badge>
+                      ))}
                     </div>
-                    {priceChange !== 0 && (
-                      <div className="flex items-center gap-1 text-xs">
-                        {priceChange > 0 ? (
-                          <TrendingUp className="w-3 h-3 text-green-400" />
-                        ) : (
-                          <TrendingDown className="w-3 h-3 text-red-400" />
-                        )}
-                        <span className={priceChange > 0 ? "text-green-400" : "text-red-400"}>
-                          {priceChange > 0 ? "+" : ""}{priceChange.toFixed(1)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-4 text-xs text-gray-400">
-                    <div className="flex items-center gap-1">
-                      <Bed className="w-3 h-3" />
-                      {property.bedrooms}
+                    <div className="flex items-center justify-between text-sm text-gray-400">
+                      <span>{property.bedrooms} BD • {property.bathrooms} BA</span>
+                      <span>{property.sqft} sqft</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Bath className="w-3 h-3" />
-                      {property.bathrooms}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Maximize className="w-3 h-3" />
-                      {property.sqft} sqft
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1">
-                    {property.amenities.slice(0, 3).map((amenity: string) => (
-                      <Badge key={amenity} variant="secondary" className="text-xs">
-                        {amenity}
-                      </Badge>
-                    ))}
-                    {property.amenities.length > 3 && (
-                      <Badge variant="secondary" className="text-xs">
-                        +{property.amenities.length - 3}
-                      </Badge>
-                    )}
-                  </div>
-
-                  <Dialog>
-                    <DialogTrigger asChild>
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-700">
+                      <div className="text-2xl font-bold text-green-400">{property.currentPrice} CR</div>
                       <Button
-                        size="sm"
-                        className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
-                        onClick={() => setSelectedProperty(property)}
+                        onClick={() => handleBuy(property._id)}
+                        className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
                       >
-                        View Details
+                        Buy
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-gray-900 border-cyan-400/30 max-h-[80vh] overflow-auto">
-                      <DialogHeader>
-                        <DialogTitle className="text-cyan-400">{property.name}</DialogTitle>
-                        <DialogDescription className="text-gray-400">
-                          {property.location} • {property.propertyType}
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="text-sm font-bold text-cyan-400 mb-2">Description</h4>
-                          <p className="text-sm text-gray-300">{property.description}</p>
-                        </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            {availableProperties.length === 0 && (
+              <div className="text-center py-8 text-gray-400">No properties available on the market</div>
+            )}
+          </TabsContent>
 
+          {/* Player Listings Tab */}
+          <TabsContent value="players" className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {(playerListings || []).map((property: any) => {
+                const profit = property.askingPrice - property.originalPurchasePrice;
+                const profitPercent = ((profit / property.originalPurchasePrice) * 100).toFixed(1);
+                
+                return (
+                  <Card key={property._id} className="bg-gray-800/50 border-pink-500/30 hover:border-pink-500/60 transition-all">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
                         <div>
-                          <h4 className="text-sm font-bold text-cyan-400 mb-2">Details</h4>
-                          <div className="grid grid-cols-3 gap-3 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Bed className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-300">{property.bedrooms} Beds</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Bath className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-300">{property.bathrooms} Baths</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Maximize className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-300">{property.sqft} sqft</span>
-                            </div>
-                          </div>
+                          <CardTitle className="text-pink-400 text-lg">{property.name}</CardTitle>
+                          <CardDescription className="text-gray-400 text-sm">{property.location}</CardDescription>
+                          <div className="text-xs text-gray-500 mt-1">Seller: {property.ownerName}</div>
                         </div>
-
-                        <div>
-                          <h4 className="text-sm font-bold text-cyan-400 mb-2">Amenities</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {property.amenities.map((amenity: string) => (
-                              <Badge key={amenity} variant="secondary">
-                                {amenity}
-                              </Badge>
-                            ))}
-                          </div>
+                        <Badge variant="outline" className="border-pink-500 text-pink-400">
+                          Player Listing
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="text-sm text-gray-300">{property.description}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {property.amenities.slice(0, 3).map((amenity: string) => (
+                          <Badge key={amenity} variant="secondary" className="text-xs">
+                            {amenity}
+                          </Badge>
+                        ))}
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="text-gray-400">
+                          Original: <span className="text-gray-300">{property.originalPurchasePrice} CR</span>
                         </div>
-
-                        <div className="pt-4 border-t border-gray-700">
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-gray-400">Price:</span>
-                            <span className="text-2xl font-bold text-green-400">{property.currentPrice} CR</span>
-                          </div>
-                          <Button
-                            onClick={() => handleBuy(property._id)}
-                            className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
-                          >
-                            Buy Now
-                          </Button>
+                        <div className="text-gray-400">
+                          Market: <span className="text-gray-300">{property.currentPrice} CR</span>
                         </div>
                       </div>
-                    </DialogContent>
-                  </Dialog>
+                      <div className="flex items-center justify-between pt-2 border-t border-gray-700">
+                        <div>
+                          <div className="text-2xl font-bold text-pink-400">{property.askingPrice} CR</div>
+                          <div className={`text-xs ${profit >= 0 ? "text-green-400" : "text-red-400"}`}>
+                            {profit >= 0 ? "+" : ""}{profitPercent}% vs purchase
+                          </div>
+                        </div>
+                        <Button
+                          onClick={() => handleBuyFromPlayer(property._id)}
+                          className="bg-pink-400/20 border border-pink-400 text-pink-400 hover:bg-pink-400/30"
+                        >
+                          Buy
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            {(!playerListings || playerListings.length === 0) && (
+              <div className="text-center py-8 text-gray-400">No player listings available</div>
+            )}
+          </TabsContent>
+
+          {/* My Properties Tab */}
+          <TabsContent value="portfolio" className="space-y-4">
+            {userProperties && userProperties.properties && userProperties.properties.length > 0 && (
+              <Card className="bg-gray-800/30 border-green-500/30">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-sm text-gray-400">Portfolio Value</div>
+                      <div className="text-xl font-bold text-green-400">{userProperties.totalValue} CR</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-400">Total Invested</div>
+                      <div className="text-xl font-bold text-cyan-400">{userProperties.totalInvested} CR</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-400">P/L</div>
+                      <div className={`text-xl font-bold ${userProperties.profitLoss >= 0 ? "text-green-400" : "text-red-400"}`}>
+                        {userProperties.profitLoss >= 0 ? "+" : ""}{userProperties.profitLoss} CR
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            );
-          })}
-        </CardContent>
-      </Card>
-    </div>
+            )}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {userProperties?.properties?.map((property: any) => {
+                const purchasePrice = property.priceHistory.find((h: any) => h.event.includes("Purchased"))?.price || property.basePrice;
+                const profitLoss = property.currentPrice - purchasePrice;
+                const profitPercent = ((profitLoss / purchasePrice) * 100).toFixed(1);
+
+                return (
+                  <Card key={property._id} className="bg-gray-800/50 border-yellow-500/30">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-yellow-400 text-lg">{property.name}</CardTitle>
+                          <CardDescription className="text-gray-400 text-sm">{property.location}</CardDescription>
+                        </div>
+                        {property.listedForSale && (
+                          <Badge variant="outline" className="border-pink-500 text-pink-400">
+                            Listed: {property.askingPrice} CR
+                          </Badge>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div className="text-gray-400">
+                          Purchased: <span className="text-gray-300">{purchasePrice} CR</span>
+                        </div>
+                        <div className="text-gray-400">
+                          Current: <span className="text-gray-300">{property.currentPrice} CR</span>
+                        </div>
+                        <div className="col-span-2 text-gray-400">
+                          P/L: <span className={profitLoss >= 0 ? "text-green-400" : "text-red-400"}>
+                            {profitLoss >= 0 ? "+" : ""}{profitLoss} CR ({profitPercent}%)
+                          </span>
+                        </div>
+                      </div>
+
+                      {!property.listedForSale ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              placeholder="Asking price"
+                              value={askingPrices[property._id] || ""}
+                              onChange={(e) =>
+                                setAskingPrices((prev) => ({
+                                  ...prev,
+                                  [property._id]: parseInt(e.target.value) || 0,
+                                }))
+                              }
+                              className="bg-gray-900 border-gray-700 text-white"
+                            />
+                            <Button
+                              onClick={() => handleListForSale(property._id)}
+                              className="bg-pink-400/20 border border-pink-400 text-pink-400 hover:bg-pink-400/30"
+                            >
+                              List
+                            </Button>
+                          </div>
+                          <Button
+                            onClick={() => handleSell(property._id)}
+                            variant="outline"
+                            className="w-full border-red-500 text-red-500 hover:bg-red-500/10"
+                          >
+                            Sell to Market
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          onClick={() => handleDelist(property._id)}
+                          variant="outline"
+                          className="w-full border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
+                        >
+                          Delist
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+            {(!userProperties?.properties || userProperties.properties.length === 0) && (
+              <div className="text-center py-8 text-gray-400">You don't own any properties yet</div>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Market Events */}
+        {marketEvents && marketEvents.length > 0 && (
+          <Card className="mt-4 bg-gray-800/30 border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="text-purple-400 text-sm">Recent Market Events</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {marketEvents.slice(0, 5).map((event: any) => (
+                <div key={event._id} className="flex items-center justify-between text-sm p-2 bg-gray-900/30 rounded">
+                  <div className="flex items-center gap-2">
+                    {event.priceImpact > 0 ? (
+                      <TrendingUp className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 text-red-400" />
+                    )}
+                    <span className="text-gray-300">{event.description}</span>
+                  </div>
+                  <span className="text-xs text-gray-500">{event.affectedArea}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+      </CardContent>
+    </Card>
   );
 }

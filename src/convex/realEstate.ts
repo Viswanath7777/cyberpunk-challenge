@@ -53,6 +53,250 @@ export const getUserProperties = query({
   },
 });
 
+// New: List property for sale by owner
+export const listPropertyForSale = mutation({
+  args: {
+    propertyId: v.id("properties"),
+    askingPrice: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    const property = await ctx.db.get(args.propertyId);
+    if (!property) throw new Error("Property not found");
+    if (property.ownerId !== user._id) throw new Error("You don't own this property");
+    if (property.listedForSale) throw new Error("Property already listed");
+    if (args.askingPrice < 1000) throw new Error("Asking price must be at least 1000 CR");
+
+    await ctx.db.patch(args.propertyId, {
+      listedForSale: true,
+      askingPrice: args.askingPrice,
+      listedAt: Date.now(),
+    });
+  },
+});
+
+// New: Delist property from sale
+export const delistProperty = mutation({
+  args: {
+    propertyId: v.id("properties"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    const property = await ctx.db.get(args.propertyId);
+    if (!property) throw new Error("Property not found");
+    if (property.ownerId !== user._id) throw new Error("You don't own this property");
+
+    await ctx.db.patch(args.propertyId, {
+      listedForSale: false,
+      askingPrice: undefined,
+      listedAt: undefined,
+    });
+  },
+});
+
+// New: Get all player listings
+export const getPlayerListings = query({
+  args: {},
+  handler: async (ctx) => {
+    const listings = await ctx.db
+      .query("properties")
+      .withIndex("by_listed", (q) => q.eq("listedForSale", true))
+      .collect();
+
+    const enriched = await Promise.all(
+      listings.map(async (property) => {
+        const owner = property.ownerId ? await ctx.db.get(property.ownerId) : null;
+        const purchaseHistory = await ctx.db
+          .query("propertyTransactions")
+          .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+          .order("desc")
+          .take(1);
+        
+        const originalPurchasePrice = purchaseHistory[0]?.price || property.basePrice;
+
+        return {
+          ...property,
+          ownerName: owner?.characterName || "Unknown",
+          originalPurchasePrice,
+        };
+      })
+    );
+
+    return enriched;
+  },
+});
+
+// New: Buy property from another player
+export const buyFromPlayer = mutation({
+  args: {
+    propertyId: v.id("properties"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    const property = await ctx.db.get(args.propertyId);
+    if (!property) throw new Error("Property not found");
+    if (!property.listedForSale) throw new Error("Property not listed for sale");
+    if (property.ownerId === user._id) throw new Error("Cannot buy your own property");
+    if (!property.askingPrice) throw new Error("No asking price set");
+    if (!user.credits || user.credits < property.askingPrice) {
+      throw new Error("Insufficient credits");
+    }
+
+    const seller = property.ownerId ? await ctx.db.get(property.ownerId) : null;
+    if (!seller) throw new Error("Seller not found");
+
+    // Transfer credits
+    await ctx.db.patch(user._id, {
+      credits: user.credits - property.askingPrice,
+    });
+    await ctx.db.patch(seller._id, {
+      credits: (seller.credits || 0) + property.askingPrice,
+    });
+
+    // Transfer property ownership
+    await ctx.db.patch(args.propertyId, {
+      ownerId: user._id,
+      status: "owned",
+      purchasedAt: Date.now(),
+      listedForSale: false,
+      askingPrice: undefined,
+      listedAt: undefined,
+      priceHistory: [
+        ...property.priceHistory,
+        {
+          price: property.askingPrice,
+          timestamp: Date.now(),
+          event: `Sold to ${user.characterName}`,
+        },
+      ],
+    });
+
+    // Record transaction
+    await ctx.db.insert("propertyTransactions", {
+      propertyId: args.propertyId,
+      buyerId: user._id,
+      sellerId: seller._id,
+      price: property.askingPrice,
+      transactionDate: Date.now(),
+      transactionType: "player_sale",
+    });
+  },
+});
+
+// New: Admin update property price
+export const adminUpdatePrice = mutation({
+  args: {
+    propertyId: v.id("properties"),
+    newPrice: v.number(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    const property = await ctx.db.get(args.propertyId);
+    if (!property) throw new Error("Property not found");
+    if (args.newPrice < 1000) throw new Error("Price must be at least 1000 CR");
+
+    await ctx.db.patch(args.propertyId, {
+      currentPrice: args.newPrice,
+      priceHistory: [
+        ...property.priceHistory,
+        {
+          price: args.newPrice,
+          timestamp: Date.now(),
+          event: args.reason || "Admin price adjustment",
+        },
+      ],
+    });
+
+    // Create market event
+    await ctx.db.insert("realEstateEvents", {
+      eventType: "admin_adjustment",
+      affectedArea: property.location,
+      description: args.reason || `${property.name} price adjusted to ${args.newPrice} CR`,
+      priceImpact: ((args.newPrice - property.currentPrice) / property.currentPrice) * 100,
+      duration: 0,
+      occurredAt: Date.now(),
+    });
+  },
+});
+
+// New: Admin trigger custom market event
+export const adminTriggerEvent = mutation({
+  args: {
+    eventType: v.string(),
+    affectedArea: v.string(),
+    description: v.string(),
+    priceImpact: v.number(),
+    duration: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    await ctx.db.insert("realEstateEvents", {
+      eventType: args.eventType,
+      affectedArea: args.affectedArea,
+      description: args.description,
+      priceImpact: args.priceImpact,
+      duration: args.duration,
+      occurredAt: Date.now(),
+    });
+
+    // Apply the event immediately
+    const properties = await ctx.db.query("properties").collect();
+    for (const property of properties) {
+      if (property.location.includes(args.affectedArea)) {
+        const adjustment = 1 + args.priceImpact / 100;
+        const newPrice = Math.max(1000, Math.floor(property.currentPrice * adjustment));
+        
+        await ctx.db.patch(property._id, {
+          currentPrice: newPrice,
+          priceHistory: [
+            ...property.priceHistory,
+            {
+              price: newPrice,
+              timestamp: Date.now(),
+              event: args.description,
+            },
+          ],
+        });
+      }
+    }
+  },
+});
+
+// New: Get all properties with ownership info (admin)
+export const getAllPropertiesAdmin = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.role !== "admin") throw new Error("Admin access required");
+
+    const properties = await ctx.db.query("properties").collect();
+    
+    const enriched = await Promise.all(
+      properties.map(async (property) => {
+        const owner = property.ownerId ? await ctx.db.get(property.ownerId) : null;
+        return {
+          ...property,
+          ownerName: owner?.characterName || "Market",
+          ownerEmail: owner?.email || "N/A",
+        };
+      })
+    );
+
+    return enriched;
+  },
+});
+
 // Buy a property
 export const buyProperty = mutation({
   args: { propertyId: v.id("properties") },
@@ -92,6 +336,7 @@ export const buyProperty = mutation({
       buyerId: user._id,
       price: property.currentPrice,
       transactionDate: Date.now(),
+      transactionType: "market_purchase",
     });
     
     return { success: true };
@@ -142,6 +387,7 @@ export const sellProperty = mutation({
       buyerId: user._id, // Market buyback
       price: salePrice,
       transactionDate: Date.now(),
+      transactionType: "market_sale",
     });
     
     return { success: true };
@@ -170,8 +416,9 @@ export const seedProperties = mutation({
         bathrooms: 2,
         sqft: 1800,
         description: "Premium apartment in the heart of Bandra with stunning sea views",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 40000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 40000, event: "Initial listing" }],
       },
       {
         name: "Juhu Beach Villa",
@@ -184,8 +431,9 @@ export const seedProperties = mutation({
         bathrooms: 4,
         sqft: 3500,
         description: "Luxurious beachfront villa with private access",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 50000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 50000, event: "Initial listing" }],
       },
       {
         name: "Andheri Metro Apartments",
@@ -198,8 +446,9 @@ export const seedProperties = mutation({
         bathrooms: 2,
         sqft: 1200,
         description: "Convenient apartment near metro station",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 33000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 33000, event: "Initial listing" }],
       },
       {
         name: "Powai Lake View Tower",
@@ -212,8 +461,9 @@ export const seedProperties = mutation({
         bathrooms: 3,
         sqft: 2500,
         description: "Stunning penthouse overlooking Powai Lake",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 45000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 45000, event: "Initial listing" }],
       },
       {
         name: "Worli Sea Link Towers",
@@ -226,8 +476,9 @@ export const seedProperties = mutation({
         bathrooms: 3,
         sqft: 2200,
         description: "Ultra-modern apartment with Sea Link views",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 43000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 43000, event: "Initial listing" }],
       },
       {
         name: "Colaba Heritage Mansion",
@@ -240,8 +491,9 @@ export const seedProperties = mutation({
         bathrooms: 3,
         sqft: 2800,
         description: "Historic mansion in South Mumbai's prime location",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 47000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 47000, event: "Initial listing" }],
       },
       {
         name: "Lower Parel Tech Hub Office",
@@ -254,8 +506,9 @@ export const seedProperties = mutation({
         bathrooms: 2,
         sqft: 1500,
         description: "Modern office space in tech district",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 37000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 37000, event: "Initial listing" }],
       },
       {
         name: "Thane Creek Residency",
@@ -268,8 +521,9 @@ export const seedProperties = mutation({
         bathrooms: 1,
         sqft: 950,
         description: "Affordable housing in growing Thane area",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 31000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 31000, event: "Initial listing" }],
       },
       {
         name: "Navi Mumbai Smart City Flat",
@@ -282,8 +536,9 @@ export const seedProperties = mutation({
         bathrooms: 2,
         sqft: 1100,
         description: "Modern apartment in planned smart city",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 32000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 32000, event: "Initial listing" }],
       },
       {
         name: "Bandra East Studio",
@@ -296,8 +551,9 @@ export const seedProperties = mutation({
         bathrooms: 1,
         sqft: 600,
         description: "Cozy studio for young professionals",
-        status: "available",
-        priceHistory: [{ timestamp: Date.now(), price: 30000 }],
+        status: "available" as const,
+        listedForSale: false,
+        priceHistory: [{ timestamp: Date.now(), price: 30000, event: "Initial listing" }],
       },
     ];
     
