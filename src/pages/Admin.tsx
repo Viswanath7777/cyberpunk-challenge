@@ -26,6 +26,8 @@ export default function Admin() {
   const createBetEvent = useMutation(api.bets.createEvent);
   const closeBetEvent = useMutation(api.bets.closeEvent);
   const resolveBetEvent = useMutation(api.bets.resolveEvent);
+  const allProperties = useQuery(api.realEstate.getAllPropertiesAdmin);
+  const adminUpdatePrice = useMutation(api.realEstate.adminUpdatePrice);
 
   const [isCreating, setIsCreating] = useState(false);
   const [newChallenge, setNewChallenge] = useState({
@@ -42,6 +44,7 @@ export default function Admin() {
     durationHours: 24,
   });
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
+  const [propertyPrices, setPropertyPrices] = useState<Record<string, number>>({});
 
   // Redirect if not admin
   if (user?.role !== "admin") {
@@ -157,6 +160,26 @@ export default function Admin() {
       toast.success("Event resolved and payouts distributed");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to resolve event");
+    }
+  };
+
+  const handleUpdatePropertyPrice = async (propertyId: string) => {
+    const newPrice = propertyPrices[propertyId];
+    if (!newPrice || newPrice <= 0) {
+      toast.error("Enter a valid price");
+      return;
+    }
+
+    try {
+      await adminUpdatePrice({ propertyId: propertyId as any, newPrice });
+      toast.success("Property price updated");
+      setPropertyPrices((prev) => {
+        const updated = { ...prev };
+        delete updated[propertyId];
+        return updated;
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update price");
     }
   };
 
@@ -540,6 +563,78 @@ export default function Admin() {
                   </div>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Real Estate Management */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="bg-gray-900/50 border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="text-purple-500">Real Estate Management</CardTitle>
+              <CardDescription className="text-gray-400">
+                View and update property prices
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
+              {allProperties?.map((property) => (
+                <div
+                  key={property._id}
+                  className="p-4 bg-gray-800/30 rounded border border-gray-700 space-y-2"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="text-cyan-400 font-bold">{property.name}</div>
+                      <div className="text-xs text-gray-500">{property.location}</div>
+                      <div className="text-sm text-gray-400 mt-1">
+                        {property.bedrooms > 0 ? `${property.bedrooms} BR` : "Studio"} •{" "}
+                        {property.bathrooms} BA • {property.sqft} sqft
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Status: <span className="uppercase">{property.status}</span>
+                        {property.ownerName && (
+                          <span className="ml-2 text-yellow-400">
+                            Owner: {property.ownerName}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right space-y-2">
+                      <div className="text-green-400 font-bold text-lg">
+                        {property.currentPrice.toLocaleString()} CR
+                      </div>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          type="number"
+                          placeholder="New price"
+                          value={propertyPrices[property._id] || ""}
+                          onChange={(e) =>
+                            setPropertyPrices((prev) => ({
+                              ...prev,
+                              [property._id]: parseInt(e.target.value) || 0,
+                            }))
+                          }
+                          className="w-32 bg-gray-800 border-gray-600 text-white text-sm"
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => handleUpdatePropertyPrice(property._id)}
+                          className="bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
+                        >
+                          Update
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {allProperties?.length === 0 && (
+                <div className="text-center py-8 text-gray-400">No properties found</div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
