@@ -652,19 +652,19 @@ export default function Admin() {
                       <SelectTrigger className="bg-gray-800 border-gray-600 text-white w-full">
                         <SelectValue placeholder="Select location..." />
                       </SelectTrigger>
-                      <SelectContent className="max-h-[300px] overflow-y-auto z-[100] bg-gray-800 border-gray-600">
+                      <SelectContent className="max-h-[300px] overflow-y-auto z-[100] bg-gray-800 border-gray-600 text-white">
                         {allProperties === undefined ? (
                           <div className="p-2 text-gray-400 text-sm">Loading locations...</div>
                         ) : !allProperties || allProperties.length === 0 ? (
                           <div className="p-2 text-gray-400 text-sm">No properties found. Initialize the market first.</div>
-                        ) : uniqueLocations.length > 0 ? (
+                        ) : uniqueLocations.length === 0 ? (
+                          <div className="p-2 text-gray-400 text-sm">No locations available</div>
+                        ) : (
                           uniqueLocations.map((location) => (
                             <SelectItem key={location} value={location}>
                               {location}
                             </SelectItem>
                           ))
-                        ) : (
-                          <div className="p-2 text-gray-400 text-sm">No locations available</div>
                         )}
                       </SelectContent>
                     </Select>
