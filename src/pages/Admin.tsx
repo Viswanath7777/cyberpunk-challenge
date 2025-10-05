@@ -619,6 +619,10 @@ export default function Admin() {
               {/* Market Event Creation */}
               <div className="p-4 bg-gray-800/50 rounded border border-purple-500/30 space-y-3">
                 <h3 className="text-purple-400 font-bold">Trigger Market Event</h3>
+                <p className="text-xs text-gray-400">
+                  Create an event that immediately affects property prices in a specific area. 
+                  Duration is for tracking how long the event remains "active" in the system.
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <Label htmlFor="eventType" className="text-cyan-400">Event Type</Label>
@@ -639,6 +643,7 @@ export default function Admin() {
                       placeholder="e.g., Andheri West"
                       className="bg-gray-800 border-gray-600 text-white"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Must match property location exactly</p>
                   </div>
                 </div>
                 <div>
@@ -662,6 +667,7 @@ export default function Admin() {
                       placeholder="e.g., 10 for +10%, -5 for -5%"
                       className="bg-gray-800 border-gray-600 text-white"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Positive = price increase, Negative = price decrease</p>
                   </div>
                   <div>
                     <Label htmlFor="eventDuration" className="text-cyan-400">Duration (hours)</Label>
@@ -672,13 +678,14 @@ export default function Admin() {
                       onChange={(e) => setMarketEvent((p) => ({ ...p, duration: parseInt(e.target.value) || 24 }))}
                       className="bg-gray-800 border-gray-600 text-white"
                     />
+                    <p className="text-xs text-gray-500 mt-1">How long event stays "active" (for tracking)</p>
                   </div>
                 </div>
                 <Button
                   onClick={handleTriggerMarketEvent}
                   className="w-full bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
                 >
-                  Trigger Market Event
+                  Trigger Market Event (Applies Immediately)
                 </Button>
               </div>
 
