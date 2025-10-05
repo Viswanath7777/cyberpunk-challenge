@@ -652,6 +652,8 @@ export default function Admin() {
                       <SelectTrigger className="bg-gray-800 border-gray-600 text-white w-full">
                         <SelectValue placeholder="Select location..." />
                       </SelectTrigger>
+                    <p className="text-xs text-gray-500 mt-1">Select from available property locations</p>
+=======
                       <SelectContent className="max-h-[300px] overflow-y-auto z-[100] bg-gray-800 border-gray-600">
                         {allProperties === undefined ? (
                           <div className="p-2 text-gray-400 text-sm">Loading locations...</div>
@@ -666,6 +668,7 @@ export default function Admin() {
                         )}
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-gray-500 mt-1">Select from available property locations</p>
 =======
                     <p className="text-xs text-gray-500 mt-1">Select from available property locations</p>
                   </div>
