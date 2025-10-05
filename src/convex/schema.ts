@@ -237,57 +237,6 @@ const schema = defineSchema(
       value: v.number(),
       updatedAt: v.number(),
     }).index("by_key", ["key"]),
-
-    // Properties table
-    properties: defineTable({
-      name: v.string(),
-      location: v.string(),
-      propertyType: v.string(),
-      basePrice: v.number(),
-      currentPrice: v.number(),
-      amenities: v.array(v.string()),
-      bedrooms: v.number(),
-      bathrooms: v.number(),
-      sqft: v.number(),
-      description: v.string(),
-      status: v.union(v.literal("available"), v.literal("owned")),
-      ownerId: v.optional(v.id("users")),
-      purchasedAt: v.optional(v.number()),
-      priceHistory: v.array(v.object({
-        timestamp: v.number(),
-        price: v.number(),
-        event: v.string(),
-      })),
-      listedForSale: v.boolean(),
-      askingPrice: v.optional(v.number()),
-      listedAt: v.optional(v.number()),
-    })
-      .index("by_status", ["status"])
-      .index("by_owner", ["ownerId"])
-      .index("by_location", ["location"]),
-
-    // Real estate events table
-    realEstateEvents: defineTable({
-      eventType: v.string(),
-      affectedArea: v.string(),
-      description: v.string(),
-      priceImpact: v.number(),
-      duration: v.number(),
-      occurredAt: v.number(),
-    }).index("by_area", ["affectedArea"]),
-
-    // Property transactions table
-    propertyTransactions: defineTable({
-      propertyId: v.id("properties"),
-      buyerId: v.optional(v.id("users")),
-      sellerId: v.optional(v.id("users")),
-      price: v.number(),
-      transactionDate: v.number(),
-      transactionType: v.string(),
-    })
-      .index("by_property", ["propertyId"])
-      .index("by_buyer", ["buyerId"])
-      .index("by_seller", ["sellerId"]),
   },
   {
     schemaValidation: false,
