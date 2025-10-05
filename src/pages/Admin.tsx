@@ -653,7 +653,7 @@ export default function Admin() {
                         <SelectValue placeholder="Select location..." />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px] overflow-y-auto z-[100] bg-gray-800 border-gray-600">
-                        {!allProperties ? (
+                        {allProperties === undefined ? (
                           <div className="p-2 text-gray-400 text-sm">Loading locations...</div>
                         ) : uniqueLocations.length > 0 ? (
                           uniqueLocations.map((location) => (
