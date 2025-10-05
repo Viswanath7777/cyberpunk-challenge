@@ -32,14 +32,7 @@ export const getPropertyDetails = query({
 export const getUserProperties = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email))
-      .unique();
-
+    const user = await getCurrentUser(ctx);
     if (!user) return null;
 
     const properties = await ctx.db
