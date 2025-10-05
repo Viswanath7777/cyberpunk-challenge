@@ -14,16 +14,16 @@ export const seedProperties = mutation({
 
     // Location-based pricing (credits per sqft) - adjusted to reflect real Mumbai property values
     const locationPricing: Record<string, number> = {
-      "Colaba": 85000,
-      "Marine Drive": 80000,
-      "Worli": 75000,
-      "Juhu": 70000,
-      "Bandra West": 65000,
-      "Lower Parel": 60000,
-      "Powai": 40000,
-      "Andheri East": 30000,
-      "Dadar": 35000,
-      "Malad": 25000,
+      "Colaba": 8500,
+      "Marine Drive": 8000,
+      "Worli": 7500,
+      "Juhu": 7000,
+      "Bandra West": 6500,
+      "Lower Parel": 6000,
+      "Powai": 4000,
+      "Andheri East": 3000,
+      "Dadar": 3500,
+      "Malad": 2500,
     };
 
     const locations = [
@@ -85,16 +85,16 @@ export const migrateExistingProperties = mutation({
 
     // Location-based pricing (credits per sqft) - adjusted to reflect real Mumbai property values
     const locationPricing: Record<string, number> = {
-      "Colaba": 85000,
-      "Marine Drive": 80000,
-      "Worli": 75000,
-      "Juhu": 70000,
-      "Bandra West": 65000,
-      "Lower Parel": 60000,
-      "Powai": 40000,
-      "Andheri East": 30000,
-      "Dadar": 35000,
-      "Malad": 25000,
+      "Colaba": 8500,
+      "Marine Drive": 8000,
+      "Worli": 7500,
+      "Juhu": 7000,
+      "Bandra West": 6500,
+      "Lower Parel": 6000,
+      "Powai": 4000,
+      "Andheri East": 3000,
+      "Dadar": 3500,
+      "Malad": 2500,
     };
 
     const allProperties = await ctx.db.query("properties").collect();
