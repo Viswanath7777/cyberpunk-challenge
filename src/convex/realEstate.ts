@@ -119,19 +119,30 @@ export const migrateExistingProperties = mutation({
       "Mulund": 270,
     };
 
+    const locations = [
+      "Colaba", "Marine Drive", "Worli", "Juhu", "Bandra West",
+      "Khar", "Andheri West", "Santacruz", "Versova", "Lower Parel",
+      "Powai", "Dadar", "Chembur", "Ghatkopar", "Andheri East",
+      "Goregaon", "Malad", "Kandivali", "Mulund", "Borivali"
+    ];
+
     const allProperties = await ctx.db.query("properties").collect();
     let updated = 0;
 
     for (let i = 0; i < allProperties.length; i++) {
       const property = allProperties[i];
       
-      // Calculate proper price based on location
-      const pricePerSqft = locationPricing[property.location] || 20000;
+      // Assign new location from expanded list
+      const newLocation = locations[i % locations.length];
+      
+      // Calculate proper price based on new location
+      const pricePerSqft = locationPricing[newLocation] || 200;
       const newPrice = Math.floor(property.sqft * pricePerSqft);
       
-      // Update property with name and recalculated price
+      // Update property with name, location, and recalculated price
       await ctx.db.patch(property._id, {
         name: `Property ${i + 1}`,
+        location: newLocation,
         basePrice: newPrice,
         currentPrice: newPrice,
       });
