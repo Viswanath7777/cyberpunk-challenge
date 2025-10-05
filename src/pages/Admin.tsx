@@ -29,6 +29,7 @@ export default function Admin() {
   const allProperties = useQuery(api.realEstate.getAllPropertiesAdmin);
   const adminUpdatePrice = useMutation(api.realEstate.adminUpdatePrice);
   const adminTriggerEvent = useMutation(api.realEstate.adminTriggerEvent);
+  const migrateProperties = useMutation(api.realEstate.migrateExistingProperties);
 
   const [isCreating, setIsCreating] = useState(false);
   const [newChallenge, setNewChallenge] = useState({
@@ -224,6 +225,15 @@ export default function Admin() {
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to trigger event");
+    }
+  };
+
+  const handleMigrateProperties = async () => {
+    try {
+      const result = await migrateProperties({});
+      toast.success(`Successfully migrated ${result.updated} properties with names and location-based pricing`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to migrate properties");
     }
   };
 
@@ -625,6 +635,20 @@ export default function Admin() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Migration Button */}
+              <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded space-y-2">
+                <h3 className="text-yellow-400 font-bold">Database Migration</h3>
+                <p className="text-sm text-gray-400">
+                  If properties don't have names or correct location-based pricing, click below to update all existing properties.
+                </p>
+                <Button
+                  onClick={handleMigrateProperties}
+                  className="w-full bg-yellow-500/20 border border-yellow-500 text-yellow-500 hover:bg-yellow-500/30"
+                >
+                  Migrate Existing Properties
+                </Button>
+              </div>
+
               {/* Market Event Creation */}
               <div className="p-4 bg-gray-800/50 rounded border border-purple-500/30 space-y-3">
                 <h3 className="text-purple-400 font-bold">Trigger Market Event</h3>

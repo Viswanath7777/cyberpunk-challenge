@@ -74,6 +74,53 @@ export const seedProperties = mutation({
   },
 });
 
+// Migration: Update existing properties with names and location-based pricing
+export const migrateExistingProperties = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user || user.role !== "admin") {
+      throw new Error("Admin access required");
+    }
+
+    // Location-based pricing (credits per sqft) - same as seedProperties
+    const locationPricing: Record<string, number> = {
+      "Colaba": 45000,
+      "Marine Drive": 42000,
+      "Worli": 40000,
+      "Juhu": 38000,
+      "Bandra West": 32000,
+      "Lower Parel": 30000,
+      "Powai": 25000,
+      "Andheri East": 20000,
+      "Dadar": 18000,
+      "Malad": 15000,
+    };
+
+    const allProperties = await ctx.db.query("properties").collect();
+    let updated = 0;
+
+    for (let i = 0; i < allProperties.length; i++) {
+      const property = allProperties[i];
+      
+      // Calculate proper price based on location
+      const pricePerSqft = locationPricing[property.location] || 20000;
+      const newPrice = Math.floor(property.sqft * pricePerSqft);
+      
+      // Update property with name and recalculated price
+      await ctx.db.patch(property._id, {
+        name: `Property ${i + 1}`,
+        basePrice: newPrice,
+        currentPrice: newPrice,
+      });
+      
+      updated++;
+    }
+
+    return { success: true, updated };
+  },
+});
+
 // Get all available properties from market
 export const getMarketProperties = query({
   args: {},
