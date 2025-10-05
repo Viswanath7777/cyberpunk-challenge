@@ -23,7 +23,7 @@ import { Roulette } from "@/components/Roulette";
 import { HorseRacing } from "@/components/HorseRacing";
 import { Bank } from "@/components/Bank";
 import { StockMarket } from "@/components/StockMarket";
-import { RealEstate } from "@/components/RealEstate";
+import RealEstate from "@/components/RealEstate";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -1232,14 +1232,25 @@ export default function Dashboard() {
           </TabsContent>
 
           <TabsContent value="finance" className="space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid gap-6 md:grid-cols-2"
-            >
-              <Bank />
-              <StockMarket />
-            </motion.div>
+            <Tabs defaultValue="bank" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 bg-gray-800/50">
+                <TabsTrigger value="bank">Bank</TabsTrigger>
+                <TabsTrigger value="stocks">Stock Market</TabsTrigger>
+                <TabsTrigger value="real-estate">Real Estate</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="bank">
+                <Bank />
+              </TabsContent>
+
+              <TabsContent value="stocks">
+                <StockMarket />
+              </TabsContent>
+
+              <TabsContent value="real-estate">
+                <RealEstate />
+              </TabsContent>
+            </Tabs>
           </TabsContent>
         </Tabs>
       </main>

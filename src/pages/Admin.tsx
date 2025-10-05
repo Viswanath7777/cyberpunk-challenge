@@ -628,10 +628,6 @@ export default function Admin() {
               {/* Market Event Creation */}
               <div className="p-4 bg-gray-800/50 rounded border border-purple-500/30 space-y-3">
                 <h3 className="text-purple-400 font-bold">Trigger Market Event</h3>
-                <p className="text-xs text-gray-400">
-                  Create an event that immediately affects property prices in a specific area. 
-                  Duration is for tracking how long the event remains "active" in the system.
-                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
                     <Label htmlFor="eventType" className="text-cyan-400">Event Type</Label>
@@ -649,26 +645,17 @@ export default function Admin() {
                       value={marketEvent.affectedArea}
                       onValueChange={(value) => setMarketEvent((p) => ({ ...p, affectedArea: value }))}
                     >
-                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white w-full">
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
                         <SelectValue placeholder="Select location..." />
                       </SelectTrigger>
-                      <SelectContent className="max-h-[300px] overflow-y-auto z-[100] bg-gray-800 border-gray-600 text-white">
-                        {allProperties === undefined ? (
-                          <div className="p-2 text-gray-400 text-sm">Loading locations...</div>
-                        ) : !allProperties || allProperties.length === 0 ? (
-                          <div className="p-2 text-gray-400 text-sm">No properties found. Initialize the market first.</div>
-                        ) : uniqueLocations.length === 0 ? (
-                          <div className="p-2 text-gray-400 text-sm">No locations available</div>
-                        ) : (
-                          uniqueLocations.map((location) => (
-                            <SelectItem key={location} value={location}>
-                              {location}
-                            </SelectItem>
-                          ))
-                        )}
+                      <SelectContent className="bg-gray-800 border-gray-600 text-white">
+                        {uniqueLocations.map((location) => (
+                          <SelectItem key={location} value={location}>
+                            {location}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-gray-500 mt-1">Select from available property locations</p>
                   </div>
                 </div>
                 <div>
@@ -692,7 +679,6 @@ export default function Admin() {
                       placeholder="e.g., 10 for +10%, -5 for -5%"
                       className="bg-gray-800 border-gray-600 text-white"
                     />
-                    <p className="text-xs text-gray-500 mt-1">Positive = price increase, Negative = price decrease</p>
                   </div>
                   <div>
                     <Label htmlFor="eventDuration" className="text-cyan-400">Duration (hours)</Label>
@@ -703,14 +689,13 @@ export default function Admin() {
                       onChange={(e) => setMarketEvent((p) => ({ ...p, duration: parseInt(e.target.value) || 24 }))}
                       className="bg-gray-800 border-gray-600 text-white"
                     />
-                    <p className="text-xs text-gray-500 mt-1">How long event stays "active" (for display/tracking only - price change is one-time)</p>
                   </div>
                 </div>
                 <Button
                   onClick={handleTriggerMarketEvent}
                   className="w-full bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
                 >
-                  Trigger Market Event (Applies Immediately)
+                  Trigger Market Event
                 </Button>
               </div>
 

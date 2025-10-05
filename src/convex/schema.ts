@@ -242,25 +242,21 @@ const schema = defineSchema(
     properties: defineTable({
       name: v.string(),
       location: v.string(),
-      propertyType: v.string(),
-      basePrice: v.number(),
-      currentPrice: v.number(),
-      amenities: v.array(v.string()),
       bedrooms: v.number(),
       bathrooms: v.number(),
       sqft: v.number(),
-      description: v.string(),
-      status: v.union(v.literal("available"), v.literal("owned")),
+      amenities: v.array(v.string()),
+      basePrice: v.number(),
+      currentPrice: v.number(),
+      status: v.union(v.literal("available"), v.literal("sold")),
       ownerId: v.optional(v.id("users")),
-      purchasedAt: v.optional(v.number()),
-      priceHistory: v.array(v.object({ t: v.number(), v: v.number(), event: v.string() })),
-      listedForSale: v.optional(v.boolean()),
-      askingPrice: v.optional(v.number()),
-      listedAt: v.optional(v.number()),
-    })
-      .index("by_status", ["status"])
+      ownerName: v.optional(v.string()),
+      listedForSale: v.boolean(),
+      salePrice: v.optional(v.number()),
+    }).index("by_status", ["status"])
       .index("by_owner", ["ownerId"])
-      .index("by_location", ["location"]),
+      .index("by_location", ["location"])
+      .index("by_listed", ["listedForSale"]),
 
     // Real estate events table
     realEstateEvents: defineTable({
@@ -268,9 +264,11 @@ const schema = defineSchema(
       affectedArea: v.string(),
       description: v.string(),
       priceImpact: v.number(),
-      duration: v.number(),
-      occurredAt: v.number(),
-    }).index("by_area", ["affectedArea"]),
+      triggeredAt: v.number(),
+      expiresAt: v.number(),
+      status: v.union(v.literal("active"), v.literal("expired")),
+    }).index("by_status", ["status"])
+      .index("by_area", ["affectedArea"]),
 
     // Property transactions table
     propertyTransactions: defineTable({
@@ -278,12 +276,15 @@ const schema = defineSchema(
       buyerId: v.optional(v.id("users")),
       sellerId: v.optional(v.id("users")),
       price: v.number(),
-      transactionDate: v.number(),
-      transactionType: v.string(),
-    })
-      .index("by_property", ["propertyId"])
-      .index("by_buyer", ["buyerId"])
-      .index("by_seller", ["sellerId"]),
+      transactionType: v.union(
+        v.literal("market_purchase"),
+        v.literal("player_to_player"),
+        v.literal("bank_sale")
+      ),
+      timestamp: v.number(),
+    }).index("by_buyer", ["buyerId"])
+      .index("by_seller", ["sellerId"])
+      .index("by_property", ["propertyId"]),
   },
   {
     schemaValidation: false,
