@@ -60,6 +60,11 @@ export default function Admin() {
     return null;
   }
 
+  // Extract unique locations from properties
+  const uniqueLocations = Array.from(
+    new Set(allProperties?.map((p) => p.location) || [])
+  ).sort();
+
   const handleCreateChallenge = async () => {
     if (!newChallenge.title || !newChallenge.description) {
       toast.error("Please fill in all fields");
@@ -636,14 +641,22 @@ export default function Admin() {
                   </div>
                   <div>
                     <Label htmlFor="affectedArea" className="text-cyan-400">Affected Area</Label>
-                    <Input
-                      id="affectedArea"
+                    <Select
                       value={marketEvent.affectedArea}
-                      onChange={(e) => setMarketEvent((p) => ({ ...p, affectedArea: e.target.value }))}
-                      placeholder="e.g., Andheri West"
-                      className="bg-gray-800 border-gray-600 text-white"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Must match property location exactly</p>
+                      onValueChange={(value) => setMarketEvent((p) => ({ ...p, affectedArea: value }))}
+                    >
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                        <SelectValue placeholder="Select location..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {uniqueLocations.map((location) => (
+                          <SelectItem key={location} value={location}>
+                            {location}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">Select from available property locations</p>
                   </div>
                 </div>
                 <div>
