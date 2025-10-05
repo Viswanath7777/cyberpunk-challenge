@@ -307,7 +307,7 @@ export default function Admin() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="description" className="text-cyan-400">Description</Label>
                 <Textarea
@@ -717,59 +717,66 @@ export default function Admin() {
               {/* Property List */}
               <div className="space-y-3 max-h-[600px] overflow-y-auto">
                 <h3 className="text-purple-400 font-bold">All Properties</h3>
-                {allProperties?.map((property) => (
-                  <div
-                    key={property._id}
-                    className="p-4 bg-gray-800/30 rounded border border-gray-700 space-y-2"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="text-cyan-400 font-bold">{property.name}</div>
-                        <div className="text-xs text-gray-500">{property.location}</div>
-                        <div className="text-sm text-gray-400 mt-1">
-                          {property.bedrooms > 0 ? `${property.bedrooms} BR` : "Studio"} •{" "}
-                          {property.bathrooms} BA • {property.sqft} sqft
+                {!allProperties ? (
+                  <div className="text-center py-8 text-gray-400">
+                    Loading properties...
+                  </div>
+                ) : allProperties.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400">
+                    No properties found. Initialize the market first.
+                  </div>
+                ) : (
+                  allProperties.map((property) => (
+                    <div
+                      key={property._id}
+                      className="p-4 bg-gray-800/30 rounded border border-gray-700 space-y-2"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="text-cyan-400 font-bold">{property.name}</div>
+                          <div className="text-xs text-gray-500">{property.location}</div>
+                          <div className="text-sm text-gray-400 mt-1">
+                            {property.bedrooms > 0 ? `${property.bedrooms} BR` : "Studio"} •{" "}
+                            {property.bathrooms} BA • {property.sqft} sqft
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Status: <span className="uppercase">{property.status}</span>
+                            {property.ownerName && (
+                              <span className="ml-2 text-yellow-400">
+                                Owner: {property.ownerName}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          Status: <span className="uppercase">{property.status}</span>
-                          {property.ownerName && (
-                            <span className="ml-2 text-yellow-400">
-                              Owner: {property.ownerName}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right space-y-2">
-                        <div className="text-green-400 font-bold text-lg">
-                          {property.currentPrice.toLocaleString()} CR
-                        </div>
-                        <div className="flex gap-2 items-center">
-                          <Input
-                            type="number"
-                            placeholder="New price"
-                            value={propertyPrices[property._id] || ""}
-                            onChange={(e) =>
-                              setPropertyPrices((prev) => ({
-                                ...prev,
-                                [property._id]: parseInt(e.target.value) || 0,
-                              }))
-                            }
-                            className="w-32 bg-gray-800 border-gray-600 text-white text-sm"
-                          />
-                          <Button
-                            size="sm"
-                            onClick={() => handleUpdatePropertyPrice(property._id)}
-                            className="bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
-                          >
-                            Update
-                          </Button>
+                        <div className="text-right space-y-2">
+                          <div className="text-green-400 font-bold text-lg">
+                            {property.currentPrice.toLocaleString()} CR
+                          </div>
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="number"
+                              placeholder="New price"
+                              value={propertyPrices[property._id] || ""}
+                              onChange={(e) =>
+                                setPropertyPrices((prev) => ({
+                                  ...prev,
+                                  [property._id]: parseInt(e.target.value) || 0,
+                                }))
+                              }
+                              className="w-32 bg-gray-800 border-gray-600 text-white text-sm"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleUpdatePropertyPrice(property._id)}
+                              className="bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
+                            >
+                              Update
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {allProperties?.length === 0 && (
-                  <div className="text-center py-8 text-gray-400">No properties found</div>
+                  ))
                 )}
               </div>
             </CardContent>
