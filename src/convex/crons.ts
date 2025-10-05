@@ -11,12 +11,4 @@ crons.interval(
   {}
 );
 
-// Apply real estate market events (every 6 hours)
-crons.interval(
-  "apply market events",
-  { hours: 6 },
-  internal.realEstate.applyMarketEvents,
-  {}
-);
-
 export default crons;

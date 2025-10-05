@@ -1240,13 +1240,6 @@ export default function Dashboard() {
               <Bank />
               <StockMarket />
             </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-6"
-            >
-              <RealEstate />
-            </motion.div>
           </TabsContent>
         </Tabs>
       </main>
