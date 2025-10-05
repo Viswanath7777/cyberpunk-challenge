@@ -12,18 +12,18 @@ export const seedProperties = mutation({
       throw new Error("Admin access required");
     }
 
-    // Location-based pricing (credits per sqft)
+    // Location-based pricing (credits per sqft) - adjusted to reflect real Mumbai property values
     const locationPricing: Record<string, number> = {
-      "Colaba": 45000,
-      "Marine Drive": 42000,
-      "Worli": 40000,
-      "Juhu": 38000,
-      "Bandra West": 32000,
-      "Lower Parel": 30000,
-      "Powai": 25000,
-      "Andheri East": 20000,
-      "Dadar": 18000,
-      "Malad": 15000,
+      "Colaba": 85000,
+      "Marine Drive": 80000,
+      "Worli": 75000,
+      "Juhu": 70000,
+      "Bandra West": 65000,
+      "Lower Parel": 60000,
+      "Powai": 40000,
+      "Andheri East": 30000,
+      "Dadar": 35000,
+      "Malad": 25000,
     };
 
     const locations = [
@@ -83,18 +83,18 @@ export const migrateExistingProperties = mutation({
       throw new Error("Admin access required");
     }
 
-    // Location-based pricing (credits per sqft) - same as seedProperties
+    // Location-based pricing (credits per sqft) - adjusted to reflect real Mumbai property values
     const locationPricing: Record<string, number> = {
-      "Colaba": 45000,
-      "Marine Drive": 42000,
-      "Worli": 40000,
-      "Juhu": 38000,
-      "Bandra West": 32000,
-      "Lower Parel": 30000,
-      "Powai": 25000,
-      "Andheri East": 20000,
-      "Dadar": 18000,
-      "Malad": 15000,
+      "Colaba": 85000,
+      "Marine Drive": 80000,
+      "Worli": 75000,
+      "Juhu": 70000,
+      "Bandra West": 65000,
+      "Lower Parel": 60000,
+      "Powai": 40000,
+      "Andheri East": 30000,
+      "Dadar": 35000,
+      "Malad": 25000,
     };
 
     const allProperties = await ctx.db.query("properties").collect();
