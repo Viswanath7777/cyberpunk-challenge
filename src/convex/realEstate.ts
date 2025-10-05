@@ -12,6 +12,20 @@ export const seedProperties = mutation({
       throw new Error("Admin access required");
     }
 
+    // Location-based pricing (credits per sqft)
+    const locationPricing: Record<string, number> = {
+      "Colaba": 45000,
+      "Marine Drive": 42000,
+      "Worli": 40000,
+      "Juhu": 38000,
+      "Bandra West": 32000,
+      "Lower Parel": 30000,
+      "Powai": 25000,
+      "Andheri East": 20000,
+      "Dadar": 18000,
+      "Malad": 15000,
+    };
+
     const locations = [
       "Bandra West", "Andheri East", "Powai", "Juhu", "Worli",
       "Lower Parel", "Colaba", "Marine Drive", "Dadar", "Malad"
@@ -37,7 +51,10 @@ export const seedProperties = mutation({
       const location = locations[i % locations.length];
       const type = propertyTypes[i % propertyTypes.length];
       const amenity = amenities[i % amenities.length];
-      const basePrice = 50000 + (i * 5000);
+      
+      // Calculate base price using location-specific pricing per sqft
+      const pricePerSqft = locationPricing[location] || 20000;
+      const basePrice = Math.floor(type.sqft * pricePerSqft);
 
       await ctx.db.insert("properties", {
         name: `Property ${i + 1}`,
