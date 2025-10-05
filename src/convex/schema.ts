@@ -234,67 +234,9 @@ const schema = defineSchema(
     // Metrics table to store app-wide simple key/value metrics (e.g., last total credits)
     metrics: defineTable({
       key: v.string(),
-      value: v.any(),
+      value: v.number(),
       updatedAt: v.number(),
     }).index("by_key", ["key"]),
-
-    properties: defineTable({
-      name: v.string(),
-      location: v.string(),
-      propertyType: v.string(),
-      basePrice: v.number(),
-      currentPrice: v.number(),
-      amenities: v.array(v.string()),
-      bedrooms: v.number(),
-      bathrooms: v.number(),
-      sqft: v.number(),
-      description: v.string(),
-      imageUrl: v.optional(v.string()),
-      status: v.union(v.literal("available"), v.literal("owned")),
-      ownerId: v.optional(v.id("users")),
-      purchasedAt: v.optional(v.number()),
-      priceHistory: v.array(
-        v.object({
-          price: v.number(),
-          timestamp: v.number(),
-          event: v.string(),
-        })
-      ),
-      // New fields for player marketplace
-      listedForSale: v.boolean(),
-      askingPrice: v.optional(v.number()),
-      listedAt: v.optional(v.number()),
-    })
-      .index("by_status", ["status"])
-      .index("by_owner", ["ownerId"])
-      .index("by_listed", ["listedForSale"]),
-
-    realEstateEvents: defineTable({
-      eventType: v.string(), // "infrastructure" | "crime" | "development" | "natural" | "economic"
-      affectedArea: v.string(),
-      description: v.string(),
-      priceImpact: v.number(), // percentage change
-      occurredAt: v.number(),
-      duration: v.number(), // days
-    }).index("by_area", ["affectedArea"])
-      .index("by_occurred", ["occurredAt"]),
-
-    propertyTransactions: defineTable({
-      propertyId: v.id("properties"),
-      buyerId: v.optional(v.id("users")),
-      sellerId: v.optional(v.id("users")),
-      price: v.number(),
-      transactionDate: v.number(),
-      transactionType: v.union(
-        v.literal("market_purchase"),
-        v.literal("player_sale"),
-        v.literal("market_sale")
-      ),
-    })
-      .index("by_property", ["propertyId"])
-      .index("by_buyer", ["buyerId"])
-      .index("by_seller", ["sellerId"]),
-
   },
   {
     schemaValidation: false,
