@@ -20,15 +20,27 @@ export const seedProperties = mutation({
       "Juhu": 700,
       "Bandra West": 650,
       "Lower Parel": 600,
+      "Andheri West": 550,
       "Powai": 400,
-      "Andheri East": 300,
       "Dadar": 350,
+      "Andheri East": 300,
       "Malad": 250,
+      "Goregaon": 280,
+      "Kandivali": 260,
+      "Borivali": 240,
+      "Santacruz": 500,
+      "Khar": 620,
+      "Versova": 480,
+      "Chembur": 320,
+      "Ghatkopar": 290,
+      "Mulund": 270,
     };
 
     const locations = [
-      "Bandra West", "Andheri East", "Powai", "Juhu", "Worli",
-      "Lower Parel", "Colaba", "Marine Drive", "Dadar", "Malad"
+      "Colaba", "Marine Drive", "Worli", "Juhu", "Bandra West",
+      "Khar", "Andheri West", "Santacruz", "Versova", "Lower Parel",
+      "Powai", "Dadar", "Chembur", "Ghatkopar", "Andheri East",
+      "Goregaon", "Malad", "Kandivali", "Mulund", "Borivali"
     ];
 
     const amenities = [
@@ -91,10 +103,20 @@ export const migrateExistingProperties = mutation({
       "Juhu": 700,
       "Bandra West": 650,
       "Lower Parel": 600,
+      "Andheri West": 550,
       "Powai": 400,
-      "Andheri East": 300,
       "Dadar": 350,
+      "Andheri East": 300,
       "Malad": 250,
+      "Goregaon": 280,
+      "Kandivali": 260,
+      "Borivali": 240,
+      "Santacruz": 500,
+      "Khar": 620,
+      "Versova": 480,
+      "Chembur": 320,
+      "Ghatkopar": 290,
+      "Mulund": 270,
     };
 
     const allProperties = await ctx.db.query("properties").collect();
