@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { getCurrentUser } from "./users";
 
 // List all properties
 export const listProperties = query({
@@ -58,15 +59,8 @@ export const getUserProperties = query({
 export const buyProperty = mutation({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
@@ -104,15 +98,8 @@ export const buyProperty = mutation({
 export const sellProperty = mutation({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
@@ -151,15 +138,8 @@ export const listPropertyForSale = mutation({
     askingPrice: v.number(),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
@@ -179,15 +159,8 @@ export const listPropertyForSale = mutation({
 export const delistProperty = mutation({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email))
-      .unique();
-
-    if (!user) throw new Error("User not found");
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
@@ -231,15 +204,8 @@ export const getPlayerListings = query({
 export const buyFromPlayer = mutation({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
-
-    const buyer = await ctx.db
-      .query("users")
-      .withIndex("email", (q) => q.eq("email", identity.email))
-      .unique();
-
-    if (!buyer) throw new Error("User not found");
+    const buyer = await getCurrentUser(ctx);
+    if (!buyer) throw new Error("Not authenticated");
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
