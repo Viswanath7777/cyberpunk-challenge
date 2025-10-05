@@ -65,6 +65,10 @@ export default function Admin() {
     new Set(allProperties?.map((p) => p.location) || [])
   ).sort();
 
+  // Debug: Log to check if properties are loaded
+  console.log("allProperties:", allProperties);
+  console.log("uniqueLocations:", uniqueLocations);
+
   const handleCreateChallenge = async () => {
     if (!newChallenge.title || !newChallenge.description) {
       toast.error("Please fill in all fields");
@@ -649,7 +653,9 @@ export default function Admin() {
                         <SelectValue placeholder="Select location..." />
                       </SelectTrigger>
                       <SelectContent className="max-h-[300px] overflow-y-auto z-[100] bg-gray-800 border-gray-600">
-                        {uniqueLocations.length > 0 ? (
+                        {!allProperties ? (
+                          <div className="p-2 text-gray-400 text-sm">Loading locations...</div>
+                        ) : uniqueLocations.length > 0 ? (
                           uniqueLocations.map((location) => (
                             <SelectItem key={location} value={location}>
                               {location}
