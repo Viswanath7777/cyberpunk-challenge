@@ -335,32 +335,16 @@ export const seedProperties = mutation({
 });
 
 // Apply market events (called by cron)
+// NOTE: This function is currently disabled because price changes are applied immediately
+// when events are triggered. The duration field is used only for tracking/display purposes.
+// If you want gradual price changes over time, this function would need to be redesigned
+// to track which properties have already been affected by each event.
 export const applyMarketEvents = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const now = Date.now();
-    const activeEvents = await ctx.db.query("realEstateEvents").collect();
-
-    for (const event of activeEvents) {
-      const eventAge = now - event.occurredAt;
-      if (eventAge > event.duration) continue;
-
-      const properties = await ctx.db
-        .query("properties")
-        .filter((q) => q.eq(q.field("location"), event.affectedArea))
-        .collect();
-
-      for (const property of properties) {
-        const newPrice = Math.floor(property.currentPrice * (1 + event.priceImpact / 100));
-        await ctx.db.patch(property._id, {
-          currentPrice: newPrice,
-          priceHistory: [
-            ...property.priceHistory,
-            { t: now, v: newPrice, event: event.description },
-          ],
-        });
-      }
-    }
+    // Currently disabled to prevent compounding price changes
+    // Price changes are applied immediately in adminTriggerEvent
+    return { success: true, message: "Price changes are applied immediately on event creation" };
   },
 });
 

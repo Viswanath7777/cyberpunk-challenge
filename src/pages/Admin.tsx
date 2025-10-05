@@ -678,7 +678,7 @@ export default function Admin() {
                       onChange={(e) => setMarketEvent((p) => ({ ...p, duration: parseInt(e.target.value) || 24 }))}
                       className="bg-gray-800 border-gray-600 text-white"
                     />
-                    <p className="text-xs text-gray-500 mt-1">How long event stays "active" (for tracking)</p>
+                    <p className="text-xs text-gray-500 mt-1">How long event stays "active" (for display/tracking only - price change is one-time)</p>
                   </div>
                 </div>
                 <Button
