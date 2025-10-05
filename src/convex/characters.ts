@@ -20,7 +20,7 @@ export const initializeCharacter = mutation({
       xp: 0,
       weeklyXp: 0,
       badges: [],
-      credits: 1000, // Starting currency
+      credits: 50000, // Starting currency
     });
 
     return { success: true };
@@ -44,7 +44,7 @@ export const getCharacter = query({
       xp: user.xp || 0,
       weeklyXp: user.weeklyXp || 0,
       badges: user.badges || [],
-      credits: user.credits ?? 1000,
+      credits: user.credits ?? 50000,
     };
   },
 });
