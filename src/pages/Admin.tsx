@@ -28,6 +28,7 @@ export default function Admin() {
   const resolveBetEvent = useMutation(api.bets.resolveEvent);
   const allProperties = useQuery(api.realEstate.getAllPropertiesAdmin);
   const adminUpdatePrice = useMutation(api.realEstate.adminUpdatePrice);
+  const adminTriggerEvent = useMutation(api.realEstate.adminTriggerEvent);
 
   const [isCreating, setIsCreating] = useState(false);
   const [newChallenge, setNewChallenge] = useState({
@@ -45,6 +46,13 @@ export default function Admin() {
   });
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
   const [propertyPrices, setPropertyPrices] = useState<Record<string, number>>({});
+  const [marketEvent, setMarketEvent] = useState({
+    eventType: "",
+    affectedArea: "",
+    description: "",
+    priceImpact: 0,
+    duration: 24,
+  });
 
   // Redirect if not admin
   if (user?.role !== "admin") {
@@ -180,6 +188,33 @@ export default function Admin() {
       });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to update price");
+    }
+  };
+
+  const handleTriggerMarketEvent = async () => {
+    if (!marketEvent.eventType || !marketEvent.affectedArea || !marketEvent.description) {
+      toast.error("Please fill in all event fields");
+      return;
+    }
+
+    try {
+      await adminTriggerEvent({
+        eventType: marketEvent.eventType,
+        affectedArea: marketEvent.affectedArea,
+        description: marketEvent.description,
+        priceImpact: marketEvent.priceImpact,
+        duration: marketEvent.duration * 3600000, // Convert hours to milliseconds
+      } as any);
+      toast.success("Market event triggered successfully");
+      setMarketEvent({
+        eventType: "",
+        affectedArea: "",
+        description: "",
+        priceImpact: 0,
+        duration: 24,
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to trigger event");
     }
   };
 
@@ -577,64 +612,134 @@ export default function Admin() {
             <CardHeader>
               <CardTitle className="text-purple-500">Real Estate Management</CardTitle>
               <CardDescription className="text-gray-400">
-                View and update property prices
+                View and update property prices, trigger market events
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3 max-h-[600px] overflow-y-auto">
-              {allProperties?.map((property) => (
-                <div
-                  key={property._id}
-                  className="p-4 bg-gray-800/30 rounded border border-gray-700 space-y-2"
+            <CardContent className="space-y-6">
+              {/* Market Event Creation */}
+              <div className="p-4 bg-gray-800/50 rounded border border-purple-500/30 space-y-3">
+                <h3 className="text-purple-400 font-bold">Trigger Market Event</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="eventType" className="text-cyan-400">Event Type</Label>
+                    <Input
+                      id="eventType"
+                      value={marketEvent.eventType}
+                      onChange={(e) => setMarketEvent((p) => ({ ...p, eventType: e.target.value }))}
+                      placeholder="e.g., Infrastructure Development"
+                      className="bg-gray-800 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="affectedArea" className="text-cyan-400">Affected Area</Label>
+                    <Input
+                      id="affectedArea"
+                      value={marketEvent.affectedArea}
+                      onChange={(e) => setMarketEvent((p) => ({ ...p, affectedArea: e.target.value }))}
+                      placeholder="e.g., Andheri West"
+                      className="bg-gray-800 border-gray-600 text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="eventDescription" className="text-cyan-400">Description</Label>
+                  <Textarea
+                    id="eventDescription"
+                    value={marketEvent.description}
+                    onChange={(e) => setMarketEvent((p) => ({ ...p, description: e.target.value }))}
+                    placeholder="Describe the market event..."
+                    className="bg-gray-800 border-gray-600 text-white"
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="priceImpact" className="text-cyan-400">Price Impact (%)</Label>
+                    <Input
+                      id="priceImpact"
+                      type="number"
+                      value={marketEvent.priceImpact}
+                      onChange={(e) => setMarketEvent((p) => ({ ...p, priceImpact: parseFloat(e.target.value) || 0 }))}
+                      placeholder="e.g., 10 for +10%, -5 for -5%"
+                      className="bg-gray-800 border-gray-600 text-white"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="eventDuration" className="text-cyan-400">Duration (hours)</Label>
+                    <Input
+                      id="eventDuration"
+                      type="number"
+                      value={marketEvent.duration}
+                      onChange={(e) => setMarketEvent((p) => ({ ...p, duration: parseInt(e.target.value) || 24 }))}
+                      className="bg-gray-800 border-gray-600 text-white"
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={handleTriggerMarketEvent}
+                  className="w-full bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="text-cyan-400 font-bold">{property.name}</div>
-                      <div className="text-xs text-gray-500">{property.location}</div>
-                      <div className="text-sm text-gray-400 mt-1">
-                        {property.bedrooms > 0 ? `${property.bedrooms} BR` : "Studio"} •{" "}
-                        {property.bathrooms} BA • {property.sqft} sqft
+                  Trigger Market Event
+                </Button>
+              </div>
+
+              {/* Property List */}
+              <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                <h3 className="text-purple-400 font-bold">All Properties</h3>
+                {allProperties?.map((property) => (
+                  <div
+                    key={property._id}
+                    className="p-4 bg-gray-800/30 rounded border border-gray-700 space-y-2"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="text-cyan-400 font-bold">{property.name}</div>
+                        <div className="text-xs text-gray-500">{property.location}</div>
+                        <div className="text-sm text-gray-400 mt-1">
+                          {property.bedrooms > 0 ? `${property.bedrooms} BR` : "Studio"} •{" "}
+                          {property.bathrooms} BA • {property.sqft} sqft
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Status: <span className="uppercase">{property.status}</span>
+                          {property.ownerName && (
+                            <span className="ml-2 text-yellow-400">
+                              Owner: {property.ownerName}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Status: <span className="uppercase">{property.status}</span>
-                        {property.ownerName && (
-                          <span className="ml-2 text-yellow-400">
-                            Owner: {property.ownerName}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="text-right space-y-2">
-                      <div className="text-green-400 font-bold text-lg">
-                        {property.currentPrice.toLocaleString()} CR
-                      </div>
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          type="number"
-                          placeholder="New price"
-                          value={propertyPrices[property._id] || ""}
-                          onChange={(e) =>
-                            setPropertyPrices((prev) => ({
-                              ...prev,
-                              [property._id]: parseInt(e.target.value) || 0,
-                            }))
-                          }
-                          className="w-32 bg-gray-800 border-gray-600 text-white text-sm"
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleUpdatePropertyPrice(property._id)}
-                          className="bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
-                        >
-                          Update
-                        </Button>
+                      <div className="text-right space-y-2">
+                        <div className="text-green-400 font-bold text-lg">
+                          {property.currentPrice.toLocaleString()} CR
+                        </div>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            type="number"
+                            placeholder="New price"
+                            value={propertyPrices[property._id] || ""}
+                            onChange={(e) =>
+                              setPropertyPrices((prev) => ({
+                                ...prev,
+                                [property._id]: parseInt(e.target.value) || 0,
+                              }))
+                            }
+                            className="w-32 bg-gray-800 border-gray-600 text-white text-sm"
+                          />
+                          <Button
+                            size="sm"
+                            onClick={() => handleUpdatePropertyPrice(property._id)}
+                            className="bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
+                          >
+                            Update
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {allProperties?.length === 0 && (
-                <div className="text-center py-8 text-gray-400">No properties found</div>
-              )}
+                ))}
+                {allProperties?.length === 0 && (
+                  <div className="text-center py-8 text-gray-400">No properties found</div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </motion.div>
