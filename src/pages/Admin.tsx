@@ -415,6 +415,21 @@ export default function Admin() {
           </Card>
         </motion.div>
 
+        {/* Real Estate Management */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <Card className="bg-gray-900/50 border-purple-500/30">
+            <CardHeader>
+              <CardTitle className="text-purple-500">Real Estate Management</CardTitle>
+              <CardDescription className="text-gray-400">Manage property prices and market events</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-sm text-gray-400">
+                Real estate admin features coming soon: manual price updates and custom market events.
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Pending Submissions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
