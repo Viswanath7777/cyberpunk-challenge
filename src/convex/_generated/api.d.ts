@@ -25,6 +25,7 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as loans from "../loans.js";
 import type * as multiplayerHighLow from "../multiplayerHighLow.js";
+import type * as realEstate from "../realEstate.js";
 import type * as stocks from "../stocks.js";
 import type * as users from "../users.js";
 
@@ -49,6 +50,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   loans: typeof loans;
   multiplayerHighLow: typeof multiplayerHighLow;
+  realEstate: typeof realEstate;
   stocks: typeof stocks;
   users: typeof users;
 }>;

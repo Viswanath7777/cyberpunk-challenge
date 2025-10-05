@@ -23,6 +23,7 @@ import { Roulette } from "@/components/Roulette";
 import { HorseRacing } from "@/components/HorseRacing";
 import { Bank } from "@/components/Bank";
 import { StockMarket } from "@/components/StockMarket";
+import { RealEstate } from "@/components/RealEstate";
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -1238,6 +1239,13 @@ export default function Dashboard() {
             >
               <Bank />
               <StockMarket />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-6"
+            >
+              <RealEstate />
             </motion.div>
           </TabsContent>
         </Tabs>
