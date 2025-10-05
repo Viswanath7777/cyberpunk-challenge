@@ -11,4 +11,12 @@ crons.interval(
   {}
 );
 
+// Apply market events (expire old events)
+crons.interval(
+  "apply market events",
+  { hours: 1 },
+  internal.realEstate.applyMarketEventsInternal,
+  {}
+);
+
 export default crons;

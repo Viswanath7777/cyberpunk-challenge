@@ -1,21 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query, internalMutation } from "./_generated/server";
 import { getCurrentUser } from "./users";
+import { Id } from "./_generated/dataModel";
 
-// Mumbai locations for properties
-const MUMBAI_LOCATIONS = [
-  "Bandra West", "Andheri East", "Powai", "Juhu", "Worli",
-  "Lower Parel", "Colaba", "Marine Drive", "Dadar", "Goregaon",
-  "Malad", "Kandivali", "Borivali", "Thane", "Navi Mumbai",
-  "Versova", "Lokhandwala", "Santacruz", "Khar", "Bandra East"
-];
-
-const AMENITIES = [
-  "Swimming Pool", "Gym", "Parking", "Security", "Garden",
-  "Club House", "Power Backup", "Lift", "CCTV", "Playground"
-];
-
-// Initialize 50 Mumbai properties
+// Seed 50 properties in Mumbai with base price starting at 50,000 credits
 export const seedProperties = mutation({
   args: {},
   handler: async (ctx) => {
@@ -24,66 +12,81 @@ export const seedProperties = mutation({
       throw new Error("Admin access required");
     }
 
-    const existingCount = await ctx.db.query("properties").collect();
-    if (existingCount.length > 0) {
-      throw new Error("Properties already seeded");
-    }
+    const locations = [
+      "Bandra West", "Andheri East", "Powai", "Juhu", "Worli",
+      "Lower Parel", "Colaba", "Marine Drive", "Dadar", "Malad"
+    ];
 
-    const properties = [];
+    const amenities = [
+      ["Gym", "Pool", "Parking"],
+      ["Security", "Garden", "Clubhouse"],
+      ["Gym", "Parking", "Power Backup"],
+      ["Pool", "Security", "Parking"],
+      ["Gym", "Garden", "Security"]
+    ];
+
+    const propertyTypes = [
+      { bedrooms: 1, bathrooms: 1, sqft: 600 },
+      { bedrooms: 2, bathrooms: 2, sqft: 1000 },
+      { bedrooms: 3, bathrooms: 2, sqft: 1500 },
+      { bedrooms: 4, bathrooms: 3, sqft: 2000 },
+      { bedrooms: 0, bathrooms: 1, sqft: 400 } // Studio
+    ];
+
     for (let i = 0; i < 50; i++) {
-      const bedrooms = Math.floor(Math.random() * 4); // 0-3 (0 = studio)
-      const bathrooms = bedrooms === 0 ? 1 : Math.floor(Math.random() * bedrooms) + 1;
-      const sqft = bedrooms === 0 ? 400 + Math.random() * 200 : 600 + bedrooms * 300 + Math.random() * 400;
-      const basePrice = bedrooms === 0 ? 50000 : 50000 + bedrooms * 30000;
-      const price = Math.floor(basePrice + Math.random() * 20000);
-      
-      const location = MUMBAI_LOCATIONS[Math.floor(Math.random() * MUMBAI_LOCATIONS.length)];
-      const amenityCount = 3 + Math.floor(Math.random() * 5);
-      const selectedAmenities = AMENITIES.sort(() => 0.5 - Math.random()).slice(0, amenityCount);
+      const location = locations[i % locations.length];
+      const type = propertyTypes[i % propertyTypes.length];
+      const amenity = amenities[i % amenities.length];
+      const basePrice = 50000 + (i * 5000);
 
-      properties.push({
-        name: `${location} ${bedrooms === 0 ? "Studio" : bedrooms + "BHK"} Apartment ${i + 1}`,
+      await ctx.db.insert("properties", {
+        name: `Property ${i + 1}`,
         location,
-        bedrooms,
-        bathrooms,
-        sqft: Math.floor(sqft),
-        amenities: selectedAmenities,
-        basePrice: price,
-        currentPrice: price,
-        status: "available" as const,
-        ownerId: undefined,
-        ownerName: undefined,
+        bedrooms: type.bedrooms,
+        bathrooms: type.bathrooms,
+        sqft: type.sqft,
+        amenities: amenity,
+        basePrice,
+        currentPrice: basePrice,
+        status: "available",
         listedForSale: false,
-        salePrice: undefined,
       });
     }
 
-    for (const prop of properties) {
-      await ctx.db.insert("properties", prop);
-    }
-
-    return { count: properties.length };
+    return { success: true, count: 50 };
   },
 });
 
-// Get all properties (for market view)
-export const listProperties = query({
+// Get all available properties from market
+export const getMarketProperties = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
-    const properties = await ctx.db.query("properties").collect();
-    
-    return properties.map(prop => ({
-      ...prop,
-      isOwned: prop.ownerId === user._id,
-    }));
+    return await ctx.db
+      .query("properties")
+      .withIndex("by_status", (q) => q.eq("status", "available"))
+      .collect();
+  },
+});
+
+// Get properties listed for sale by players
+export const getPlayerListings = query({
+  args: {},
+  handler: async (ctx) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) return null;
+
+    return await ctx.db
+      .query("properties")
+      .withIndex("by_listed", (q) => q.eq("listedForSale", true))
+      .collect();
   },
 });
 
 // Get user's owned properties
-export const myProperties = query({
+export const getMyProperties = query({
   args: {},
   handler: async (ctx) => {
     const user = await getCurrentUser(ctx);
@@ -91,32 +94,13 @@ export const myProperties = query({
 
     return await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("ownerId"), user._id))
+      .withIndex("by_owner", (q) => q.eq("ownerId", user._id))
       .collect();
   },
 });
 
-// Get properties listed for sale by other players
-export const playerListings = query({
-  args: {},
-  handler: async (ctx) => {
-    const user = await getCurrentUser(ctx);
-    if (!user) return null;
-
-    return await ctx.db
-      .query("properties")
-      .filter((q) => 
-        q.and(
-          q.eq(q.field("listedForSale"), true),
-          q.neq(q.field("ownerId"), user._id)
-        )
-      )
-      .collect();
-  },
-});
-
-// Buy property from market or another player
-export const buyProperty = mutation({
+// Buy property from market
+export const buyFromMarket = mutation({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -124,51 +108,32 @@ export const buyProperty = mutation({
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
+    if (property.status !== "available") throw new Error("Property not available");
 
-    if (property.status === "sold" && !property.listedForSale) {
-      throw new Error("Property not available");
-    }
-
-    const price = property.listedForSale ? property.salePrice! : property.currentPrice;
-    
     const userCredits = user.credits ?? 0;
-    
-    if (userCredits < price) {
+    if (userCredits < property.currentPrice) {
       throw new Error("Insufficient credits");
     }
 
-    // Deduct credits from buyer
+    // Deduct credits
     await ctx.db.patch(user._id, {
-      credits: userCredits - price,
+      credits: userCredits - property.currentPrice,
     });
 
-    // If buying from another player, credit them
-    if (property.ownerId) {
-      const seller = await ctx.db.get(property.ownerId);
-      if (seller) {
-        const sellerCredits = seller.credits ?? 0;
-        await ctx.db.patch(seller._id, {
-          credits: sellerCredits + price,
-        });
-      }
-    }
-
-    // Update property ownership
+    // Update property
     await ctx.db.patch(args.propertyId, {
       status: "sold",
       ownerId: user._id,
       ownerName: user.characterName || user.name,
       listedForSale: false,
-      salePrice: undefined,
     });
 
     // Record transaction
     await ctx.db.insert("propertyTransactions", {
       propertyId: args.propertyId,
       buyerId: user._id,
-      sellerId: property.ownerId,
-      price,
-      transactionType: property.ownerId ? "player_to_player" : "market_purchase",
+      price: property.currentPrice,
+      transactionType: "market_purchase",
       timestamp: Date.now(),
     });
 
@@ -177,7 +142,7 @@ export const buyProperty = mutation({
 });
 
 // List property for sale
-export const listPropertyForSale = mutation({
+export const listForSale = mutation({
   args: {
     propertyId: v.id("properties"),
     salePrice: v.number(),
@@ -188,14 +153,8 @@ export const listPropertyForSale = mutation({
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
-
-    if (property.ownerId !== user._id) {
-      throw new Error("You don't own this property");
-    }
-
-    if (args.salePrice <= 0) {
-      throw new Error("Invalid sale price");
-    }
+    if (property.ownerId !== user._id) throw new Error("Not your property");
+    if (args.salePrice <= 0) throw new Error("Invalid price");
 
     await ctx.db.patch(args.propertyId, {
       listedForSale: true,
@@ -207,7 +166,7 @@ export const listPropertyForSale = mutation({
 });
 
 // Unlist property from sale
-export const unlistProperty = mutation({
+export const unlistFromSale = mutation({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -215,10 +174,7 @@ export const unlistProperty = mutation({
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
-
-    if (property.ownerId !== user._id) {
-      throw new Error("You don't own this property");
-    }
+    if (property.ownerId !== user._id) throw new Error("Not your property");
 
     await ctx.db.patch(args.propertyId, {
       listedForSale: false,
@@ -229,7 +185,60 @@ export const unlistProperty = mutation({
   },
 });
 
-// Sell property back to bank
+// Buy property from another player
+export const buyFromPlayer = mutation({
+  args: { propertyId: v.id("properties") },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (!user) throw new Error("Not authenticated");
+
+    const property = await ctx.db.get(args.propertyId);
+    if (!property) throw new Error("Property not found");
+    if (!property.listedForSale) throw new Error("Property not for sale");
+    if (!property.salePrice) throw new Error("No sale price set");
+    if (property.ownerId === user._id) throw new Error("Cannot buy your own property");
+
+    const userCredits = user.credits ?? 0;
+    if (userCredits < property.salePrice) {
+      throw new Error("Insufficient credits");
+    }
+
+    const seller = await ctx.db.get(property.ownerId!);
+    if (!seller) throw new Error("Seller not found");
+
+    // Transfer credits
+    await ctx.db.patch(user._id, {
+      credits: userCredits - property.salePrice,
+    });
+
+    const sellerCredits = seller.credits ?? 0;
+    await ctx.db.patch(seller._id, {
+      credits: sellerCredits + property.salePrice,
+    });
+
+    // Update property
+    await ctx.db.patch(args.propertyId, {
+      ownerId: user._id,
+      ownerName: user.characterName || user.name,
+      listedForSale: false,
+      salePrice: undefined,
+    });
+
+    // Record transaction
+    await ctx.db.insert("propertyTransactions", {
+      propertyId: args.propertyId,
+      buyerId: user._id,
+      sellerId: property.ownerId,
+      price: property.salePrice,
+      transactionType: "player_to_player",
+      timestamp: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Sell property back to bank (80% of current price)
 export const sellToBank = mutation({
   args: { propertyId: v.id("properties") },
   handler: async (ctx, args) => {
@@ -238,19 +247,17 @@ export const sellToBank = mutation({
 
     const property = await ctx.db.get(args.propertyId);
     if (!property) throw new Error("Property not found");
+    if (property.ownerId !== user._id) throw new Error("Not your property");
 
-    if (property.ownerId !== user._id) {
-      throw new Error("You don't own this property");
-    }
-
-    // Bank buys at 80% of current price
-    const bankPrice = Math.floor(property.currentPrice * 0.8);
+    const bankBuyPrice = Math.floor(property.currentPrice * 0.8);
     const userCredits = user.credits ?? 0;
 
+    // Add credits to user
     await ctx.db.patch(user._id, {
-      credits: userCredits + bankPrice,
+      credits: userCredits + bankBuyPrice,
     });
 
+    // Reset property to market
     await ctx.db.patch(args.propertyId, {
       status: "available",
       ownerId: undefined,
@@ -259,16 +266,16 @@ export const sellToBank = mutation({
       salePrice: undefined,
     });
 
+    // Record transaction
     await ctx.db.insert("propertyTransactions", {
       propertyId: args.propertyId,
-      buyerId: undefined,
       sellerId: user._id,
-      price: bankPrice,
+      price: bankBuyPrice,
       transactionType: "bank_sale",
       timestamp: Date.now(),
     });
 
-    return { success: true, amount: bankPrice };
+    return { success: true, amount: bankBuyPrice };
   },
 });
 
@@ -279,27 +286,11 @@ export const getAllPropertiesAdmin = query({
     const user = await getCurrentUser(ctx);
     if (!user || user.role !== "admin") return null;
 
-    const properties = await ctx.db.query("properties").collect();
-    
-    // Enrich with owner names
-    const enriched = await Promise.all(
-      properties.map(async (prop) => {
-        if (prop.ownerId) {
-          const owner = await ctx.db.get(prop.ownerId);
-          return {
-            ...prop,
-            ownerName: owner?.characterName || owner?.name || "Unknown",
-          };
-        }
-        return prop;
-      })
-    );
-
-    return enriched;
+    return await ctx.db.query("properties").collect();
   },
 });
 
-// Admin: Manually update property price
+// Admin: Update property price
 export const adminUpdatePrice = mutation({
   args: {
     propertyId: v.id("properties"),
@@ -311,9 +302,7 @@ export const adminUpdatePrice = mutation({
       throw new Error("Admin access required");
     }
 
-    if (args.newPrice <= 0) {
-      throw new Error("Invalid price");
-    }
+    if (args.newPrice <= 0) throw new Error("Invalid price");
 
     await ctx.db.patch(args.propertyId, {
       currentPrice: args.newPrice,
@@ -329,8 +318,8 @@ export const adminTriggerEvent = mutation({
     eventType: v.string(),
     affectedArea: v.string(),
     description: v.string(),
-    priceImpact: v.number(), // percentage
-    duration: v.number(), // milliseconds
+    priceImpact: v.number(),
+    duration: v.number(),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
@@ -338,32 +327,35 @@ export const adminTriggerEvent = mutation({
       throw new Error("Admin access required");
     }
 
-    // Create event record
+    const now = Date.now();
+    const expiresAt = now + args.duration;
+
+    // Create event
     await ctx.db.insert("realEstateEvents", {
       eventType: args.eventType,
       affectedArea: args.affectedArea,
       description: args.description,
       priceImpact: args.priceImpact,
-      triggeredAt: Date.now(),
-      expiresAt: Date.now() + args.duration,
+      triggeredAt: now,
+      expiresAt,
       status: "active",
     });
 
-    // Apply price changes immediately
+    // Apply price impact to properties in affected area
     const properties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("location"), args.affectedArea))
+      .withIndex("by_location", (q) => q.eq("location", args.affectedArea))
       .collect();
 
     for (const property of properties) {
-      const multiplier = 1 + args.priceImpact / 100;
-      const newPrice = Math.floor(property.currentPrice * multiplier);
+      const impactMultiplier = 1 + args.priceImpact / 100;
+      const newPrice = Math.floor(property.currentPrice * impactMultiplier);
       await ctx.db.patch(property._id, {
-        currentPrice: Math.max(10000, newPrice), // Minimum 10k credits
+        currentPrice: newPrice,
       });
     }
 
-    return { success: true, propertiesAffected: properties.length };
+    return { success: true, affectedProperties: properties.length };
   },
 });
 
@@ -374,16 +366,27 @@ export const getActiveEvents = query({
     const user = await getCurrentUser(ctx);
     if (!user) return null;
 
-    const now = Date.now();
     return await ctx.db
       .query("realEstateEvents")
-      .filter((q) => 
-        q.and(
-          q.eq(q.field("status"), "active"),
-          q.gt(q.field("expiresAt"), now)
-        )
-      )
-      .order("desc")
-      .take(10);
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect();
+  },
+});
+
+// Internal mutation to expire old market events
+export const applyMarketEventsInternal = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const activeEvents = await ctx.db
+      .query("realEstateEvents")
+      .withIndex("by_status", (q) => q.eq("status", "active"))
+      .collect();
+
+    for (const event of activeEvents) {
+      if (event.expiresAt <= now) {
+        await ctx.db.patch(event._id, { status: "expired" });
+      }
+    }
   },
 });

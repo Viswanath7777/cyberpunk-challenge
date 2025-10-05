@@ -1236,7 +1236,7 @@ export default function Dashboard() {
               <TabsList className="grid w-full grid-cols-3 bg-gray-800/50">
                 <TabsTrigger value="bank">Bank</TabsTrigger>
                 <TabsTrigger value="stocks">Stock Market</TabsTrigger>
-                <TabsTrigger value="real-estate">Real Estate</TabsTrigger>
+                <TabsTrigger value="realestate">Real Estate</TabsTrigger>
               </TabsList>
 
               <TabsContent value="bank">
@@ -1247,7 +1247,7 @@ export default function Dashboard() {
                 <StockMarket />
               </TabsContent>
 
-              <TabsContent value="real-estate">
+              <TabsContent value="realestate">
                 <RealEstate />
               </TabsContent>
             </Tabs>

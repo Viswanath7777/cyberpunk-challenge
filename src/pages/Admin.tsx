@@ -212,7 +212,7 @@ export default function Admin() {
         affectedArea: marketEvent.affectedArea,
         description: marketEvent.description,
         priceImpact: marketEvent.priceImpact,
-        duration: marketEvent.duration * 3600000, // Convert hours to milliseconds
+        duration: marketEvent.duration * 3600000,
       } as any);
       toast.success("Market event triggered successfully");
       setMarketEvent({

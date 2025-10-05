@@ -6,31 +6,54 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Building2, Home, Users, TrendingUp, MapPin, Bed, Bath, Maximize, Sparkles } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Building2, Home, TrendingUp, DollarSign } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
 export default function RealEstate() {
-  const properties = useQuery(api.realEstate.listProperties);
-  const myProperties = useQuery(api.realEstate.myProperties);
-  const playerListings = useQuery(api.realEstate.playerListings);
+  const marketProperties = useQuery(api.realEstate.getMarketProperties);
+  const playerListings = useQuery(api.realEstate.getPlayerListings);
+  const myProperties = useQuery(api.realEstate.getMyProperties);
   const activeEvents = useQuery(api.realEstate.getActiveEvents);
-  
-  const buyProperty = useMutation(api.realEstate.buyProperty);
-  const listForSale = useMutation(api.realEstate.listPropertyForSale);
-  const unlistProperty = useMutation(api.realEstate.unlistProperty);
-  const sellToBank = useMutation(api.realEstate.sellToBank);
+
   const seedProperties = useMutation(api.realEstate.seedProperties);
+  const buyFromMarket = useMutation(api.realEstate.buyFromMarket);
+  const buyFromPlayer = useMutation(api.realEstate.buyFromPlayer);
+  const listForSale = useMutation(api.realEstate.listForSale);
+  const unlistFromSale = useMutation(api.realEstate.unlistFromSale);
+  const sellToBank = useMutation(api.realEstate.sellToBank);
 
   const [listingPrices, setListingPrices] = useState<Record<string, number>>({});
+  const [isSeeding, setIsSeeding] = useState(false);
 
-  const handleBuy = async (propertyId: string) => {
+  const handleSeedMarket = async () => {
+    setIsSeeding(true);
     try {
-      await buyProperty({ propertyId: propertyId as any });
+      await seedProperties({});
+      toast.success("Market initialized with 50 properties!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to seed market");
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const handleBuyFromMarket = async (propertyId: string) => {
+    try {
+      await buyFromMarket({ propertyId: propertyId as any });
       toast.success("Property purchased successfully!");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to buy property");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to purchase property");
+    }
+  };
+
+  const handleBuyFromPlayer = async (propertyId: string) => {
+    try {
+      await buyFromPlayer({ propertyId: propertyId as any });
+      toast.success("Property purchased from player!");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to purchase property");
     }
   };
 
@@ -49,280 +72,251 @@ export default function RealEstate() {
         delete updated[propertyId];
         return updated;
       });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to list property");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to list property");
     }
   };
 
   const handleUnlist = async (propertyId: string) => {
     try {
-      await unlistProperty({ propertyId: propertyId as any });
-      toast.success("Property unlisted");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to unlist");
+      await unlistFromSale({ propertyId: propertyId as any });
+      toast.success("Property unlisted from sale");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to unlist property");
     }
   };
 
   const handleSellToBank = async (propertyId: string) => {
     try {
       const result = await sellToBank({ propertyId: propertyId as any });
-      toast.success(`Sold to bank for ${result.amount.toLocaleString()} CR`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to sell");
+      toast.success(`Sold to bank for ${result.amount} credits (80% of market value)`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to sell property");
     }
   };
-
-  const handleSeedMarket = async () => {
-    try {
-      await seedProperties({});
-      toast.success("Market initialized with 50 properties!");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to seed market");
-    }
-  };
-
-  const PropertyCard = ({ property, showBuyButton = false, showOwnerActions = false }: any) => (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="p-4 bg-gray-800/50 rounded-lg border border-cyan-400/30 space-y-3"
-    >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-cyan-400 font-bold">{property.name}</h3>
-          </div>
-          <div className="flex items-center gap-1 text-sm text-gray-400 mt-1">
-            <MapPin className="w-4 h-4" />
-            {property.location}
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-green-400 font-bold text-xl">
-            {(property.listedForSale ? property.salePrice : property.currentPrice).toLocaleString()} CR
-          </div>
-          {property.listedForSale && (
-            <Badge variant="outline" className="text-yellow-400 border-yellow-400 mt-1">
-              Player Sale
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      <div className="flex gap-4 text-sm text-gray-300">
-        <div className="flex items-center gap-1">
-          <Bed className="w-4 h-4" />
-          {property.bedrooms === 0 ? "Studio" : `${property.bedrooms} BR`}
-        </div>
-        <div className="flex items-center gap-1">
-          <Bath className="w-4 h-4" />
-          {property.bathrooms} BA
-        </div>
-        <div className="flex items-center gap-1">
-          <Maximize className="w-4 h-4" />
-          {property.sqft} sqft
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-1">
-        {property.amenities?.slice(0, 5).map((amenity: string) => (
-          <Badge key={amenity} variant="secondary" className="text-xs bg-gray-700 text-gray-300">
-            {amenity}
-          </Badge>
-        ))}
-        {property.amenities?.length > 5 && (
-          <Badge variant="secondary" className="text-xs bg-gray-700 text-gray-300">
-            +{property.amenities.length - 5} more
-          </Badge>
-        )}
-      </div>
-
-      {property.ownerName && (
-        <div className="text-sm text-yellow-400">
-          Owner: {property.ownerName}
-        </div>
-      )}
-
-      {showBuyButton && (
-        <Button
-          onClick={() => handleBuy(property._id)}
-          className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
-        >
-          Buy Property
-        </Button>
-      )}
-
-      {showOwnerActions && (
-        <div className="space-y-2">
-          {property.listedForSale ? (
-            <Button
-              onClick={() => handleUnlist(property._id)}
-              variant="outline"
-              className="w-full border-yellow-400 text-yellow-400 hover:bg-yellow-400/10"
-            >
-              Unlist from Sale
-            </Button>
-          ) : (
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  placeholder="Sale price"
-                  value={listingPrices[property._id] || ""}
-                  onChange={(e) =>
-                    setListingPrices((prev) => ({
-                      ...prev,
-                      [property._id]: parseInt(e.target.value) || 0,
-                    }))
-                  }
-                  className="bg-gray-800 border-gray-600 text-white"
-                />
-                <Button
-                  onClick={() => handleListForSale(property._id)}
-                  className="bg-green-500/20 border border-green-500 text-green-500 hover:bg-green-500/30"
-                >
-                  List
-                </Button>
-              </div>
-              <Button
-                onClick={() => handleSellToBank(property._id)}
-                variant="outline"
-                className="w-full border-red-400 text-red-400 hover:bg-red-400/10"
-              >
-                Sell to Bank (80% value)
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
-    </motion.div>
-  );
-
-  if (properties === null || myProperties === null || playerListings === null) {
-    return (
-      <div className="text-center py-8 text-gray-400">
-        Loading real estate market...
-      </div>
-    );
-  }
-
-  const availableProperties = properties?.filter(
-    (p) => p.status === "available" || (p.listedForSale && !p.isOwned)
-  );
 
   return (
     <div className="space-y-6">
-      {/* Market Events Banner */}
+      {/* Active Market Events */}
       {activeEvents && activeEvents.length > 0 && (
-        <Card className="bg-purple-900/20 border-purple-500/50">
-          <CardHeader>
-            <CardTitle className="text-purple-400 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Active Market Events
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {activeEvents.map((event) => (
-              <div key={event._id} className="p-3 bg-gray-800/50 rounded border border-purple-500/30">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-cyan-400 font-bold">{event.eventType}</div>
-                    <div className="text-sm text-gray-400">{event.description}</div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      Area: {event.affectedArea} • Impact: {event.priceImpact > 0 ? "+" : ""}
-                      {event.priceImpact}%
-                    </div>
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+          <Card className="bg-yellow-500/10 border-yellow-500/30">
+            <CardHeader>
+              <CardTitle className="text-yellow-400 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5" />
+                Active Market Events
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {activeEvents.map((event) => (
+                <div key={event._id} className="p-3 bg-gray-800/50 rounded border border-yellow-500/30">
+                  <div className="font-bold text-yellow-400">{event.eventType}</div>
+                  <div className="text-sm text-gray-400">{event.description}</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Area: {event.affectedArea} • Impact: {event.priceImpact > 0 ? "+" : ""}{event.priceImpact}%
                   </div>
-                  <Badge variant="outline" className="text-purple-400 border-purple-400">
-                    Active
-                  </Badge>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {/* Initialize Market Button */}
-      {properties && properties.length === 0 && (
-        <Card className="bg-gray-900/50 border-cyan-400/30">
-          <CardContent className="p-6 text-center space-y-4">
-            <Sparkles className="w-12 h-12 text-cyan-400 mx-auto" />
-            <div>
-              <h3 className="text-xl font-bold text-cyan-400 mb-2">Initialize Real Estate Market</h3>
-              <p className="text-gray-400">
-                Create 50 Mumbai properties to start trading
-              </p>
-            </div>
+      {marketProperties !== undefined && marketProperties !== null && marketProperties.length === 0 && (
+        <Card className="bg-purple-500/10 border-purple-500/30">
+          <CardContent className="p-6 text-center">
+            <Building2 className="w-12 h-12 mx-auto mb-4 text-purple-400" />
+            <h3 className="text-xl font-bold text-purple-400 mb-2">No Properties Available</h3>
+            <p className="text-gray-400 mb-4">Initialize the real estate market to get started</p>
             <Button
               onClick={handleSeedMarket}
-              className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+              disabled={isSeeding}
+              className="bg-purple-500/20 border border-purple-500 text-purple-500 hover:bg-purple-500/30"
             >
-              Initialize Market
+              {isSeeding ? "Initializing..." : "Initialize Market (50 Properties)"}
             </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Tabs */}
+      {/* Property Tabs */}
       <Tabs defaultValue="market" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-gray-800/50">
-          <TabsTrigger value="market" className="data-[state=active]:bg-cyan-400/20">
-            <Home className="w-4 h-4 mr-2" />
-            Market ({availableProperties?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="listings" className="data-[state=active]:bg-cyan-400/20">
-            <Users className="w-4 h-4 mr-2" />
-            Player Listings ({playerListings?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="my-properties" className="data-[state=active]:bg-cyan-400/20">
-            <Building2 className="w-4 h-4 mr-2" />
-            My Properties ({myProperties?.length || 0})
-          </TabsTrigger>
+          <TabsTrigger value="market">Market</TabsTrigger>
+          <TabsTrigger value="listings">Player Listings</TabsTrigger>
+          <TabsTrigger value="owned">My Properties</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="market" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {availableProperties?.map((property) => (
-              <PropertyCard
-                key={property._id}
-                property={property}
-                showBuyButton={!property.isOwned}
-              />
-            ))}
+        {/* Market Properties */}
+        <TabsContent value="market" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {marketProperties && marketProperties.length > 0 ? (
+              marketProperties.map((property) => (
+                <Card key={property._id} className="bg-gray-800/50 border-cyan-400/30">
+                  <CardHeader>
+                    <CardTitle className="text-cyan-400 flex items-center gap-2">
+                      <Home className="w-5 h-5" />
+                      {property.name}
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">{property.location}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-sm text-gray-300">
+                      {property.bedrooms > 0 ? `${property.bedrooms} BR` : "Studio"} • {property.bathrooms} BA • {property.sqft} sqft
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {property.amenities.join(", ")}
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="text-2xl font-bold text-green-400">
+                        {property.currentPrice.toLocaleString()} CR
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleBuyFromMarket(property._id)}
+                        className="bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                      >
+                        Buy
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-400">
+                {marketProperties === undefined || marketProperties === null ? "Loading..." : "No properties available"}
+              </div>
+            )}
           </div>
-          {availableProperties?.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              No properties available for purchase
-            </div>
-          )}
         </TabsContent>
 
-        <TabsContent value="listings" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {playerListings?.map((property) => (
-              <PropertyCard key={property._id} property={property} showBuyButton />
-            ))}
+        {/* Player Listings */}
+        <TabsContent value="listings" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {playerListings && playerListings.length > 0 ? (
+              playerListings.map((property) => (
+                <Card key={property._id} className="bg-gray-800/50 border-pink-500/30">
+                  <CardHeader>
+                    <CardTitle className="text-pink-500 flex items-center gap-2">
+                      <Home className="w-5 h-5" />
+                      {property.name}
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      {property.location} • Seller: {property.ownerName}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-sm text-gray-300">
+                      {property.bedrooms > 0 ? `${property.bedrooms} BR` : "Studio"} • {property.bathrooms} BA • {property.sqft} sqft
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {property.amenities.join(", ")}
+                    </div>
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="text-2xl font-bold text-green-400">
+                        {property.salePrice?.toLocaleString()} CR
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleBuyFromPlayer(property._id)}
+                        className="bg-pink-500/20 border border-pink-500 text-pink-500 hover:bg-pink-500/30"
+                      >
+                        Buy
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-400">
+                No player listings available
+              </div>
+            )}
           </div>
-          {playerListings?.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              No player listings available
-            </div>
-          )}
         </TabsContent>
 
-        <TabsContent value="my-properties" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {myProperties?.map((property) => (
-              <PropertyCard key={property._id} property={property} showOwnerActions />
-            ))}
+        {/* My Properties */}
+        <TabsContent value="owned" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myProperties && myProperties.length > 0 ? (
+              myProperties.map((property) => (
+                <Card key={property._id} className="bg-gray-800/50 border-green-500/30">
+                  <CardHeader>
+                    <CardTitle className="text-green-500 flex items-center gap-2">
+                      <Home className="w-5 h-5" />
+                      {property.name}
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">{property.location}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-sm text-gray-300">
+                      {property.bedrooms > 0 ? `${property.bedrooms} BR` : "Studio"} • {property.bathrooms} BA • {property.sqft} sqft
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {property.amenities.join(", ")}
+                    </div>
+                    <div className="text-sm text-gray-400">
+                      Market Value: {property.currentPrice.toLocaleString()} CR
+                    </div>
+                    {property.listedForSale && (
+                      <div className="text-sm text-yellow-400">
+                        Listed for: {property.salePrice?.toLocaleString()} CR
+                      </div>
+                    )}
+                    <div className="space-y-2 pt-2">
+                      {!property.listedForSale ? (
+                        <>
+                          <div className="flex gap-2">
+                            <Input
+                              type="number"
+                              placeholder="Sale price"
+                              value={listingPrices[property._id] || ""}
+                              onChange={(e) =>
+                                setListingPrices((prev) => ({
+                                  ...prev,
+                                  [property._id]: parseInt(e.target.value) || 0,
+                                }))
+                              }
+                              className="bg-gray-800 border-gray-600 text-white"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={() => handleListForSale(property._id)}
+                              className="bg-green-500/20 border border-green-500 text-green-500 hover:bg-green-500/30"
+                            >
+                              List
+                            </Button>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleSellToBank(property._id)}
+                            className="w-full border-yellow-400 text-yellow-400 hover:bg-yellow-400/10"
+                          >
+                            Sell to Bank (80%)
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleUnlist(property._id)}
+                          className="w-full border-red-500 text-red-500 hover:bg-red-500/10"
+                        >
+                          Unlist
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-400">
+                You don't own any properties yet
+              </div>
+            )}
           </div>
-          {myProperties?.length === 0 && (
-            <div className="text-center py-8 text-gray-400">
-              You don't own any properties yet
-            </div>
-          )}
         </TabsContent>
       </Tabs>
     </div>
