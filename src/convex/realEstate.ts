@@ -19,28 +19,63 @@ export const seedProperties = mutation({
       "Worli": 750,
       "Juhu": 700,
       "Bandra West": 650,
+      "Khar": 620,
       "Lower Parel": 600,
       "Andheri West": 550,
-      "Powai": 400,
-      "Dadar": 350,
-      "Andheri East": 300,
-      "Malad": 250,
-      "Goregaon": 280,
-      "Kandivali": 260,
-      "Borivali": 240,
+      "Bandra East": 540,
       "Santacruz": 500,
-      "Khar": 620,
       "Versova": 480,
+      "Prabhadevi": 470,
+      "Mahalaxmi": 460,
+      "Tardeo": 450,
+      "Breach Candy": 440,
+      "Malabar Hill": 820,
+      "Peddar Road": 780,
+      "Cuffe Parade": 760,
+      "Nariman Point": 740,
+      "Fort": 720,
+      "Churchgate": 710,
+      "Grant Road": 420,
+      "Charni Road": 410,
+      "Powai": 400,
+      "Bandra Kurla Complex": 580,
+      "Kurla West": 340,
+      "Kurla East": 310,
+      "Dadar": 350,
       "Chembur": 320,
       "Ghatkopar": 290,
+      "Andheri East": 300,
+      "Goregaon": 280,
       "Mulund": 270,
+      "Kandivali": 260,
+      "Malad": 250,
+      "Borivali": 240,
+      "Dahisar": 230,
+      "Mira Road": 180,
+      "Vile Parle": 520,
+      "Khar West": 630,
+      "Linking Road": 610,
+      "Mahim": 430,
+      "Sion": 330,
+      "Matunga": 360,
+      "Wadala": 370,
+      "Parel": 590,
+      "Elphinstone": 380,
+      "Byculla": 340,
+      "Mazgaon": 330,
     };
 
     const locations = [
       "Colaba", "Marine Drive", "Worli", "Juhu", "Bandra West",
       "Khar", "Andheri West", "Santacruz", "Versova", "Lower Parel",
       "Powai", "Dadar", "Chembur", "Ghatkopar", "Andheri East",
-      "Goregaon", "Malad", "Kandivali", "Mulund", "Borivali"
+      "Goregaon", "Malad", "Kandivali", "Mulund", "Borivali",
+      "Bandra East", "Prabhadevi", "Mahalaxmi", "Tardeo", "Breach Candy",
+      "Malabar Hill", "Peddar Road", "Cuffe Parade", "Nariman Point", "Fort",
+      "Churchgate", "Grant Road", "Charni Road", "Bandra Kurla Complex", "Kurla West",
+      "Kurla East", "Dahisar", "Mira Road", "Vile Parle", "Khar West",
+      "Linking Road", "Mahim", "Sion", "Matunga", "Wadala",
+      "Parel", "Elphinstone", "Byculla", "Mazgaon", "Goregaon"
     ];
 
     const amenities = [
@@ -60,7 +95,7 @@ export const seedProperties = mutation({
     ];
 
     for (let i = 0; i < 50; i++) {
-      const location = locations[i % locations.length];
+      const location = locations[i];
       const type = propertyTypes[i % propertyTypes.length];
       const amenity = amenities[i % amenities.length];
       
@@ -102,28 +137,63 @@ export const migrateExistingProperties = mutation({
       "Worli": 750,
       "Juhu": 700,
       "Bandra West": 650,
+      "Khar": 620,
       "Lower Parel": 600,
       "Andheri West": 550,
-      "Powai": 400,
-      "Dadar": 350,
-      "Andheri East": 300,
-      "Malad": 250,
-      "Goregaon": 280,
-      "Kandivali": 260,
-      "Borivali": 240,
+      "Bandra East": 540,
       "Santacruz": 500,
-      "Khar": 620,
       "Versova": 480,
+      "Prabhadevi": 470,
+      "Mahalaxmi": 460,
+      "Tardeo": 450,
+      "Breach Candy": 440,
+      "Malabar Hill": 820,
+      "Peddar Road": 780,
+      "Cuffe Parade": 760,
+      "Nariman Point": 740,
+      "Fort": 720,
+      "Churchgate": 710,
+      "Grant Road": 420,
+      "Charni Road": 410,
+      "Powai": 400,
+      "Bandra Kurla Complex": 580,
+      "Kurla West": 340,
+      "Kurla East": 310,
+      "Dadar": 350,
       "Chembur": 320,
       "Ghatkopar": 290,
+      "Andheri East": 300,
+      "Goregaon": 280,
       "Mulund": 270,
+      "Kandivali": 260,
+      "Malad": 250,
+      "Borivali": 240,
+      "Dahisar": 230,
+      "Mira Road": 180,
+      "Vile Parle": 520,
+      "Khar West": 630,
+      "Linking Road": 610,
+      "Mahim": 430,
+      "Sion": 330,
+      "Matunga": 360,
+      "Wadala": 370,
+      "Parel": 590,
+      "Elphinstone": 380,
+      "Byculla": 340,
+      "Mazgaon": 330,
     };
 
     const locations = [
       "Colaba", "Marine Drive", "Worli", "Juhu", "Bandra West",
       "Khar", "Andheri West", "Santacruz", "Versova", "Lower Parel",
       "Powai", "Dadar", "Chembur", "Ghatkopar", "Andheri East",
-      "Goregaon", "Malad", "Kandivali", "Mulund", "Borivali"
+      "Goregaon", "Malad", "Kandivali", "Mulund", "Borivali",
+      "Bandra East", "Prabhadevi", "Mahalaxmi", "Tardeo", "Breach Candy",
+      "Malabar Hill", "Peddar Road", "Cuffe Parade", "Nariman Point", "Fort",
+      "Churchgate", "Grant Road", "Charni Road", "Bandra Kurla Complex", "Kurla West",
+      "Kurla East", "Dahisar", "Mira Road", "Vile Parle", "Khar West",
+      "Linking Road", "Mahim", "Sion", "Matunga", "Wadala",
+      "Parel", "Elphinstone", "Byculla", "Mazgaon", "Goregaon"
     ];
 
     const allProperties = await ctx.db.query("properties").collect();
@@ -132,8 +202,8 @@ export const migrateExistingProperties = mutation({
     for (let i = 0; i < allProperties.length; i++) {
       const property = allProperties[i];
       
-      // Assign new location from expanded list
-      const newLocation = locations[i % locations.length];
+      // Assign new location from expanded list (unique for each property)
+      const newLocation = locations[Math.min(i, locations.length - 1)];
       
       // Calculate proper price based on new location
       const pricePerSqft = locationPricing[newLocation] || 200;
