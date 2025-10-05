@@ -645,17 +645,22 @@ export default function Admin() {
                       value={marketEvent.affectedArea}
                       onValueChange={(value) => setMarketEvent((p) => ({ ...p, affectedArea: value }))}
                     >
-                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                      <SelectTrigger className="bg-gray-800 border-gray-600 text-white w-full">
                         <SelectValue placeholder="Select location..." />
                       </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {uniqueLocations.map((location) => (
-                          <SelectItem key={location} value={location}>
-                            {location}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="max-h-[300px] overflow-y-auto z-[100] bg-gray-800 border-gray-600">
+                        {uniqueLocations.length > 0 ? (
+                          uniqueLocations.map((location) => (
+                            <SelectItem key={location} value={location}>
+                              {location}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-gray-400 text-sm">No locations available</div>
+                        )}
                       </SelectContent>
                     </Select>
+=======
                     <p className="text-xs text-gray-500 mt-1">Select from available property locations</p>
                   </div>
                 </div>
