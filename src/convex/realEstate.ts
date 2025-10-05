@@ -75,7 +75,7 @@ export const buyProperty = mutation({
 
     const userCredits = user.credits ?? 0;
     if (userCredits < property.currentPrice) {
-      throw new Error("Insufficient credits");
+      throw new Error(`Insufficient credits: You have ${userCredits} credits but property costs ${property.currentPrice}`);
     }
 
     await ctx.db.patch(user._id, {
