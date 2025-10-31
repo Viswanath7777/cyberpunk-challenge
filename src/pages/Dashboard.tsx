@@ -339,8 +339,15 @@ export default function Dashboard() {
       <header className="relative border-b border-cyan-400/30 bg-black/80 backdrop-blur">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
-            <div className="text-2xl font-bold text-cyan-400 glitch-text">
-              CYBER_CLASS
+            <div className="flex items-center gap-3">
+              <img 
+                src="https://harmless-tapir-303.convex.cloud/api/storage/fbcf8f6c-2e72-4311-8879-4b1ddcd707b7" 
+                alt="Spin City Logo" 
+                className="h-8 w-auto"
+              />
+              <span className="text-2xl font-bold text-pink-500 glitch-text">
+                SPIN CITY
+              </span>
             </div>
             <Dialog>
               <DialogTrigger asChild>

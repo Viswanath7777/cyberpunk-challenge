@@ -44,9 +44,16 @@ export default function Landing() {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="text-2xl font-bold text-cyan-400 glitch-text"
+            className="flex items-center gap-3"
           >
-            CYBER_CLASS
+            <img 
+              src="https://harmless-tapir-303.convex.cloud/api/storage/fbcf8f6c-2e72-4311-8879-4b1ddcd707b7" 
+              alt="Spin City Logo" 
+              className="h-10 w-auto"
+            />
+            <span className="text-2xl font-bold text-pink-500 glitch-text">
+              SPIN CITY
+            </span>
           </motion.div>
           
           {!isLoading && (
@@ -113,9 +120,16 @@ export default function Landing() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="space-y-4"
             >
-              <h1 className="text-6xl md:text-8xl font-bold glitch-text">
-                CYBER_CLASS
-              </h1>
+              <div className="flex flex-col items-center gap-4">
+                <img 
+                  src="https://harmless-tapir-303.convex.cloud/api/storage/fbcf8f6c-2e72-4311-8879-4b1ddcd707b7" 
+                  alt="Spin City Logo" 
+                  className="h-32 w-auto"
+                />
+                <h1 className="text-6xl md:text-8xl font-bold text-pink-500 glitch-text">
+                  SPIN CITY
+                </h1>
+              </div>
               <p className="text-xl md:text-2xl text-pink-500 font-medium">
                 Level Up Through Real-World Challenges
               </p>
