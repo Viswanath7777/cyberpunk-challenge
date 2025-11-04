@@ -325,12 +325,12 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Subtle animated background */}
-      <div className="fixed inset-0 opacity-[0.08]">
+      <div className="fixed inset-0 opacity-[0.12]">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            radial-gradient(circle at 20% 50%, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(250, 204, 21, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 40% 20%, rgba(168, 85, 247, 0.12) 0%, transparent 50%)
+            radial-gradient(circle at 20% 50%, rgba(219, 39, 119, 0.2) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.18) 0%, transparent 50%)
           `,
           animation: 'float 20s ease-in-out infinite'
         }} />

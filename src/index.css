@@ -42,32 +42,32 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* SPIN CITY THEME - Dark Casino Mode */
+/* SPIN CITY THEME - Dark Casino Mode with Logo Colors */
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.12 0.02 285); /* Very dark background */
-  --foreground: oklch(0.95 0.01 0); /* Off-white text */
-  --card: oklch(0.18 0.03 285); /* Dark card with subtle purple tint */
-  --card-foreground: oklch(0.95 0.01 0); /* Off-white text */
-  --popover: oklch(0.18 0.03 285);
-  --popover-foreground: oklch(0.95 0.01 0);
-  --primary: oklch(0.65 0.28 340); /* Hot pink */
-  --primary-foreground: oklch(0.98 0.02 0); /* White */
-  --secondary: oklch(0.85 0.18 90); /* Bright yellow */
-  --secondary-foreground: oklch(0.15 0.08 285); /* Deep purple */
-  --muted: oklch(0.22 0.03 285); /* Muted dark */
-  --muted-foreground: oklch(0.65 0.02 285); /* Muted text */
-  --accent: oklch(0.75 0.20 285); /* Vibrant purple */
-  --accent-foreground: oklch(0.98 0.02 0); /* White */
+  --background: oklch(0.10 0.02 280); /* Very dark purple-black */
+  --foreground: oklch(0.98 0.01 0); /* Pure white text */
+  --card: oklch(0.15 0.04 280); /* Dark card with purple tint */
+  --card-foreground: oklch(0.98 0.01 0); /* Pure white text */
+  --popover: oklch(0.15 0.04 280);
+  --popover-foreground: oklch(0.98 0.01 0);
+  --primary: oklch(0.60 0.30 330); /* Vibrant magenta/pink from logo */
+  --primary-foreground: oklch(0.98 0.01 0); /* White */
+  --secondary: oklch(0.55 0.25 290); /* Deep purple from logo */
+  --secondary-foreground: oklch(0.98 0.01 0); /* White */
+  --muted: oklch(0.20 0.04 280); /* Muted dark purple */
+  --muted-foreground: oklch(0.60 0.02 280); /* Muted text */
+  --accent: oklch(0.65 0.28 320); /* Bright pink accent */
+  --accent-foreground: oklch(0.98 0.01 0); /* White */
   --destructive: oklch(0.55 0.25 25); /* Red */
-  --border: oklch(0.28 0.04 285); /* Subtle border */
-  --input: oklch(0.22 0.03 285); /* Dark input bg */
-  --ring: oklch(0.65 0.28 340); /* Hot pink ring */
-  --chart-1: oklch(0.65 0.28 340); /* Hot pink */
-  --chart-2: oklch(0.85 0.18 90); /* Yellow */
-  --chart-3: oklch(0.75 0.20 285); /* Purple */
+  --border: oklch(0.25 0.05 280); /* Purple-tinted border */
+  --input: oklch(0.18 0.04 280); /* Dark input bg */
+  --ring: oklch(0.60 0.30 330); /* Magenta ring */
+  --chart-1: oklch(0.60 0.30 330); /* Magenta */
+  --chart-2: oklch(0.55 0.25 290); /* Purple */
+  --chart-3: oklch(0.65 0.28 320); /* Pink */
   --chart-4: oklch(0.65 0.20 150); /* Green */
-  --chart-5: oklch(0.70 0.22 40); /* Orange */
+  --chart-5: oklch(0.70 0.22 340); /* Hot pink */
   --sidebar: oklch(0.15 0.03 285);
   --sidebar-foreground: oklch(0.95 0.01 0);
   --sidebar-primary: oklch(0.65 0.28 340);
@@ -79,29 +79,29 @@
 }
 
 .dark {
-  --background: oklch(0.12 0.02 285);
-  --foreground: oklch(0.95 0.01 0);
-  --card: oklch(0.18 0.03 285);
-  --card-foreground: oklch(0.95 0.01 0);
-  --popover: oklch(0.18 0.03 285);
-  --popover-foreground: oklch(0.95 0.01 0);
-  --primary: oklch(0.65 0.28 340);
-  --primary-foreground: oklch(0.98 0.02 0);
-  --secondary: oklch(0.85 0.18 90);
-  --secondary-foreground: oklch(0.15 0.08 285);
-  --muted: oklch(0.22 0.03 285);
-  --muted-foreground: oklch(0.65 0.02 285);
-  --accent: oklch(0.75 0.20 285);
-  --accent-foreground: oklch(0.98 0.02 0);
+  --background: oklch(0.10 0.02 280);
+  --foreground: oklch(0.98 0.01 0);
+  --card: oklch(0.15 0.04 280);
+  --card-foreground: oklch(0.98 0.01 0);
+  --popover: oklch(0.15 0.04 280);
+  --popover-foreground: oklch(0.98 0.01 0);
+  --primary: oklch(0.60 0.30 330);
+  --primary-foreground: oklch(0.98 0.01 0);
+  --secondary: oklch(0.55 0.25 290);
+  --secondary-foreground: oklch(0.98 0.01 0);
+  --muted: oklch(0.20 0.04 280);
+  --muted-foreground: oklch(0.60 0.02 280);
+  --accent: oklch(0.65 0.28 320);
+  --accent-foreground: oklch(0.98 0.01 0);
   --destructive: oklch(0.55 0.25 25);
-  --border: oklch(0.28 0.04 285);
-  --input: oklch(0.22 0.03 285);
-  --ring: oklch(0.65 0.28 340);
-  --chart-1: oklch(0.65 0.28 340);
-  --chart-2: oklch(0.85 0.18 90);
-  --chart-3: oklch(0.75 0.20 285);
+  --border: oklch(0.25 0.05 280);
+  --input: oklch(0.18 0.04 280);
+  --ring: oklch(0.60 0.30 330);
+  --chart-1: oklch(0.60 0.30 330);
+  --chart-2: oklch(0.55 0.25 290);
+  --chart-3: oklch(0.65 0.28 320);
   --chart-4: oklch(0.65 0.20 150);
-  --chart-5: oklch(0.70 0.22 40);
+  --chart-5: oklch(0.70 0.22 340);
   --sidebar: oklch(0.15 0.03 285);
   --sidebar-foreground: oklch(0.95 0.01 0);
   --sidebar-primary: oklch(0.65 0.28 340);
@@ -126,25 +126,25 @@
   }
 }
 
-/* Spin City glow effects */
+/* Spin City glow effects - Logo colors */
 .glow-pink {
-  box-shadow: 0 0 30px rgba(236, 72, 153, 0.6), 0 0 60px rgba(236, 72, 153, 0.3);
+  box-shadow: 0 0 30px rgba(236, 72, 153, 0.7), 0 0 60px rgba(236, 72, 153, 0.4);
 }
 
-.glow-yellow {
-  box-shadow: 0 0 30px rgba(250, 204, 21, 0.6), 0 0 60px rgba(250, 204, 21, 0.3);
+.glow-magenta {
+  box-shadow: 0 0 30px rgba(219, 39, 119, 0.7), 0 0 60px rgba(219, 39, 119, 0.4);
 }
 
 .glow-purple {
-  box-shadow: 0 0 30px rgba(168, 85, 247, 0.5), 0 0 60px rgba(168, 85, 247, 0.25);
+  box-shadow: 0 0 30px rgba(147, 51, 234, 0.6), 0 0 60px rgba(147, 51, 234, 0.3);
 }
 
-/* Modern shimmer effect */
+/* Modern shimmer effect - Logo colors */
 .shimmer {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(236, 72, 153, 0.3) 50%,
+    rgba(219, 39, 119, 0.4) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -156,27 +156,27 @@
   100% { background-position: 200% 0; }
 }
 
-/* Glitch text effect - Spin City colors */
+/* Glitch text effect - Logo colors */
 .glitch-text {
   text-shadow: 
-    0.05em 0 0 #ec4899,
-    -0.05em -0.025em 0 #facc15,
-    0.025em 0.05em 0 #a855f7;
+    0.05em 0 0 #db2777,
+    -0.05em -0.025em 0 #9333ea,
+    0.025em 0.05em 0 #ec4899;
   animation: glitch 3s infinite;
 }
 
 @keyframes glitch {
   0%, 95%, 100% {
     text-shadow: 
-      0.05em 0 0 #ec4899,
-      -0.05em -0.025em 0 #facc15,
-      0.025em 0.05em 0 #a855f7;
+      0.05em 0 0 #db2777,
+      -0.05em -0.025em 0 #9333ea,
+      0.025em 0.05em 0 #ec4899;
   }
   96% {
     text-shadow: 
-      0.1em 0 0 #ec4899,
-      -0.1em -0.05em 0 #facc15,
-      0.05em 0.1em 0 #a855f7;
+      0.1em 0 0 #db2777,
+      -0.1em -0.05em 0 #9333ea,
+      0.05em 0.1em 0 #ec4899;
   }
 }
 
@@ -190,13 +190,13 @@
   animation: float 3s ease-in-out infinite;
 }
 
-/* Pulse glow animation */
+/* Pulse glow animation - Logo colors */
 @keyframes pulse-glow {
   0%, 100% { 
-    box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+    box-shadow: 0 0 20px rgba(219, 39, 119, 0.5);
   }
   50% { 
-    box-shadow: 0 0 40px rgba(236, 72, 153, 0.8), 0 0 60px rgba(250, 204, 21, 0.4);
+    box-shadow: 0 0 40px rgba(219, 39, 119, 0.9), 0 0 60px rgba(147, 51, 234, 0.5);
   }
 }
 

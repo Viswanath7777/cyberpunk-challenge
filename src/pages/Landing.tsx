@@ -19,12 +19,12 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-secondary/10 overflow-hidden">
       {/* Modern animated background */}
-      <div className="fixed inset-0 opacity-[0.05]">
+      <div className="fixed inset-0 opacity-[0.08]">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            radial-gradient(circle at 20% 50%, rgba(236, 72, 153, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 80% 80%, rgba(250, 204, 21, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 40% 20%, rgba(168, 85, 247, 0.3) 0%, transparent 50%)
+            radial-gradient(circle at 20% 50%, rgba(219, 39, 119, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.25) 0%, transparent 50%),
+            radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.3) 0%, transparent 50%)
           `,
           animation: 'float 20s ease-in-out infinite'
         }} />
