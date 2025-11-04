@@ -323,19 +323,21 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
-      {/* Modern pattern background */}
-      <div className="fixed inset-0 opacity-[0.03]">
+    <div className="min-h-screen bg-background">
+      {/* Subtle animated background */}
+      <div className="fixed inset-0 opacity-[0.08]">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            radial-gradient(circle at 2px 2px, rgba(236, 72, 153, 0.4) 1px, transparent 0)
+            radial-gradient(circle at 20% 50%, rgba(236, 72, 153, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(250, 204, 21, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 40% 20%, rgba(168, 85, 247, 0.12) 0%, transparent 50%)
           `,
-          backgroundSize: '40px 40px'
+          animation: 'float 20s ease-in-out infinite'
         }} />
       </div>
 
       {/* Header */}
-      <header className="relative border-b border-border bg-card/80 backdrop-blur-xl shadow-sm">
+      <header className="relative border-b border-border/50 bg-card/95 backdrop-blur-xl shadow-lg">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
@@ -422,7 +424,7 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 relative">
         <Tabs defaultValue="challenges" className="space-y-6">
-          <TabsList className="bg-card border border-border shadow-sm">
+          <TabsList className="bg-card/50 border border-border/50 backdrop-blur-sm">
             <TabsTrigger value="challenges" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Target className="w-4 h-4 mr-2" />
               Challenges
@@ -546,7 +548,7 @@ export default function Dashboard() {
               className="grid gap-4"
             >
               {challenges?.map((challenge) => (
-                <Card key={challenge._id} className="bg-gray-900/50 border-cyan-400/30 hover:border-cyan-400/60 transition-all">
+                <Card key={challenge._id} className="bg-card border-primary/20 hover:border-primary/40 transition-all shadow-lg hover:shadow-xl">
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -635,7 +637,7 @@ export default function Dashboard() {
               ))}
               
               {challenges?.length === 0 && (
-                <Card className="bg-gray-900/50 border-cyan-400/30">
+                <Card className="bg-card border-border/50 shadow-lg">
                   <CardContent className="text-center py-8">
                     <div className="text-gray-400">No active challenges available</div>
                   </CardContent>
@@ -644,10 +646,10 @@ export default function Dashboard() {
             </motion.div>
 
             {/* My Created Challenges (creator can view submissions) */}
-            <Card className="bg-gray-900/50 border-cyan-400/30">
+            <Card className="bg-card border-accent/30 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-cyan-400">My Created Challenges</CardTitle>
-                <CardDescription className="text-gray-400">View submissions uploaded by participants</CardDescription>
+                <CardTitle className="text-accent">My Created Challenges</CardTitle>
+                <CardDescription className="text-muted-foreground">View submissions uploaded by participants</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {(myChallenges || []).map((mc: any) => (
@@ -725,7 +727,7 @@ export default function Dashboard() {
               className="space-y-4"
             >
               {leaderboard?.map((player: any, index: number) => (
-                <Card key={player._id} className="bg-gray-900/50 border-cyan-400/30">
+                <Card key={player._id} className="bg-card border-primary/20 shadow-lg hover:shadow-xl transition-all">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
@@ -759,7 +761,7 @@ export default function Dashboard() {
           <TabsContent value="bets" className="space-y-6">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid gap-4">
               {/* Open Events */}
-              <Card className="bg-gray-900/50 border-cyan-400/30">
+              <Card className="bg-card border-primary/30 shadow-lg">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
@@ -999,10 +1001,10 @@ export default function Dashboard() {
               </Card>
 
               {/* My Bets */}
-              <Card className="bg-gray-900/50 border-cyan-400/30">
+              <Card className="bg-card border-accent/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-cyan-400">My Bets</CardTitle>
-                  <CardDescription className="text-gray-400">Your active and past bets</CardDescription>
+                  <CardTitle className="text-accent">My Bets</CardTitle>
+                  <CardDescription className="text-muted-foreground">Your active and past bets</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {(myBets || []).map((b: any) => (
@@ -1028,10 +1030,10 @@ export default function Dashboard() {
               </Card>
 
               {/* My Created Events Manager */}
-              <Card className="bg-gray-900/50 border-green-500/30">
+              <Card className="bg-card border-secondary/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-green-500">My Created Events</CardTitle>
-                  <CardDescription className="text-gray-400">Close or resolve your events</CardDescription>
+                  <CardTitle className="text-secondary">My Created Events</CardTitle>
+                  <CardDescription className="text-muted-foreground">Close or resolve your events</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {(myCreatedEvents || []).map((evt) => (
@@ -1090,10 +1092,10 @@ export default function Dashboard() {
               </Card>
 
               {/* Loans */}
-              <Card className="bg-gray-900/50 border-purple-500/30">
+              <Card className="bg-card border-accent/30 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-purple-400">Loans</CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardTitle className="text-accent">Loans</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     Users with 0 credits can request a loan. Others may choose to fund it.
                   </CardDescription>
                 </CardHeader>
@@ -1200,7 +1202,7 @@ export default function Dashboard() {
 
           <TabsContent value="casino" className="space-y-6">
             {/* Card Ranking Info */}
-            <Card className="bg-gray-900/50 border-cyan-400/30">
+            <Card className="bg-card border-primary/30 shadow-lg">
               <CardContent className="p-4">
                 <div className="flex items-center justify-center gap-2 text-sm">
                   <span className="text-cyan-400 font-bold">Card Ranking:</span>
@@ -1225,9 +1227,9 @@ export default function Dashboard() {
             </motion.div>
 
             {/* Game History */}
-            <Card className="bg-gray-900/50 border-purple-500/30">
+            <Card className="bg-card border-accent/30 shadow-lg">
               <CardHeader>
-                <CardTitle className="text-purple-400">Recent Games</CardTitle>
+                <CardTitle className="text-accent">Recent Games</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8 text-gray-400 text-sm">
