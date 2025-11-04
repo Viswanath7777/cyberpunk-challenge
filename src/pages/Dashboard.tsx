@@ -323,20 +323,19 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-cyan-400 font-mono">
-      {/* Cyberpunk grid background */}
-      <div className="fixed inset-0 opacity-10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      {/* Modern pattern background */}
+      <div className="fixed inset-0 opacity-[0.03]">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)
+            radial-gradient(circle at 2px 2px, rgba(236, 72, 153, 0.4) 1px, transparent 0)
           `,
-          backgroundSize: '20px 20px'
+          backgroundSize: '40px 40px'
         }} />
       </div>
 
       {/* Header */}
-      <header className="relative border-b border-cyan-400/30 bg-black/80 backdrop-blur">
+      <header className="relative border-b border-border bg-card/80 backdrop-blur-xl shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
@@ -345,7 +344,7 @@ export default function Dashboard() {
                 alt="Spin City Logo" 
                 className="h-8 w-auto"
               />
-              <span className="text-2xl font-bold text-pink-500 glitch-text">
+              <span className="text-2xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent">
                 SPIN CITY
               </span>
             </div>
@@ -392,9 +391,9 @@ export default function Dashboard() {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm">
-              <Coins className="w-4 h-4 text-green-400" />
-              <span className="text-green-400">{character.credits} CR</span>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-secondary/20 to-primary/20 border border-primary/30">
+              <Coins className="w-4 h-4 text-primary" />
+              <span className="font-bold text-foreground">{character.credits} CR</span>
             </div>
             {user?.role === "admin" && (
               <Button
@@ -423,23 +422,23 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 relative">
         <Tabs defaultValue="challenges" className="space-y-6">
-          <TabsList className="bg-gray-900/50 border border-cyan-400/30">
-            <TabsTrigger value="challenges" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+          <TabsList className="bg-card border border-border shadow-sm">
+            <TabsTrigger value="challenges" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Target className="w-4 h-4 mr-2" />
               Challenges
             </TabsTrigger>
-            <TabsTrigger value="leaderboard" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="leaderboard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Trophy className="w-4 h-4 mr-2" />
               Leaderboard
             </TabsTrigger>
-            <TabsTrigger value="bets" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="bets" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               💱 Bets
             </TabsTrigger>
-            <TabsTrigger value="casino" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="casino" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Gamepad2 className="w-4 h-4 mr-2" />
               Casino
             </TabsTrigger>
-            <TabsTrigger value="finance" className="data-[state=active]:bg-cyan-400/20 data-[state=active]:text-cyan-400">
+            <TabsTrigger value="finance" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Coins className="w-4 h-4 mr-2" />
               Finance
             </TabsTrigger>
