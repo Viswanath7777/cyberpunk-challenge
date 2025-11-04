@@ -41,15 +41,15 @@ export default function CharacterSetup() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-cyan-400 font-mono flex items-center justify-center">
-      {/* Cyberpunk grid background */}
-      <div className="fixed inset-0 opacity-10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 text-foreground font-sans flex items-center justify-center">
+      {/* Background pattern */}
+      <div className="fixed inset-0 opacity-5 pointer-events-none">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px'
+            radial-gradient(circle at 20% 50%, rgba(219, 39, 119, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.25) 0%, transparent 50%),
+            radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.3) 0%, transparent 50%)
+          `
         }} />
       </div>
 
@@ -59,32 +59,32 @@ export default function CharacterSetup() {
         transition={{ duration: 0.5 }}
         className="relative"
       >
-        <Card className="w-full max-w-md bg-gray-900/80 border-cyan-400/50 backdrop-blur">
+        <Card className="w-full max-w-md bg-card/95 border-2 border-primary/30 backdrop-blur shadow-2xl">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-cyan-400/20 rounded-full flex items-center justify-center border-2 border-cyan-400">
-                <User className="w-8 h-8 text-cyan-400" />
+              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center border-2 border-primary">
+                <User className="w-8 h-8 text-primary" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-cyan-400 glitch-text">
+            <CardTitle className="text-2xl text-primary">
               Initialize Character
             </CardTitle>
-            <CardDescription className="text-gray-400">
-              Create your cyberpunk persona for the class competition
+            <CardDescription className="text-muted-foreground">
+              Create your persona for the class competition
             </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="characterName" className="text-cyan-400">
+              <Label htmlFor="characterName" className="text-foreground">
                 Character Name
               </Label>
               <Input
                 id="characterName"
                 value={characterName}
                 onChange={(e) => setCharacterName(e.target.value)}
-                placeholder="Enter your hacker alias..."
-                className="bg-gray-800 border-gray-600 text-white placeholder-gray-500"
+                placeholder="Enter your alias..."
+                className="bg-background/50 border-border text-foreground placeholder-muted-foreground"
                 maxLength={20}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !isCreating) {
@@ -92,35 +92,35 @@ export default function CharacterSetup() {
                   }
                 }}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Choose wisely - this will be your identity in the competition
               </p>
             </div>
 
-            <div className="bg-gray-800/50 p-4 rounded border border-gray-700">
-              <h3 className="text-sm font-medium text-cyan-400 mb-2">Starting Stats:</h3>
-              <div className="space-y-1 text-sm text-gray-300">
+            <div className="bg-background/50 p-4 rounded border border-border">
+              <h3 className="text-sm font-medium text-primary mb-2">Starting Stats:</h3>
+              <div className="space-y-1 text-sm text-foreground">
                 <div className="flex justify-between">
                   <span>Level:</span>
-                  <span className="text-cyan-400">1</span>
+                  <span className="text-primary">1</span>
                 </div>
                 <div className="flex justify-between">
                   <span>XP:</span>
-                  <span className="text-yellow-400 flex items-center gap-1">
+                  <span className="text-secondary flex items-center gap-1">
                     <Zap className="w-3 h-3" />
                     0
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Credits:</span>
-                  <span className="text-green-400 flex items-center gap-1">
+                  <span className="text-accent flex items-center gap-1">
                     <Coins className="w-3 h-3" />
                     1000
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Rank:</span>
-                  <span className="text-gray-400">Rookie</span>
+                  <span className="text-muted-foreground">Rookie</span>
                 </div>
               </div>
             </div>
@@ -128,26 +128,17 @@ export default function CharacterSetup() {
             <Button
               onClick={handleCreateCharacter}
               disabled={isCreating || !characterName.trim()}
-              className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30 disabled:opacity-50"
+              className="w-full bg-primary/20 border border-primary text-primary hover:bg-primary/30 disabled:opacity-50"
             >
-              {isCreating ? "Initializing..." : "Enter the Matrix"}
+              {isCreating ? "Initializing..." : "Enter the Game"}
             </Button>
 
-            <div className="text-center text-xs text-gray-500">
+            <div className="text-center text-xs text-muted-foreground">
               Welcome, {user?.name || "Anonymous"}
             </div>
           </CardContent>
         </Card>
       </motion.div>
-
-      <style>{`
-        .glitch-text {
-          text-shadow: 
-            0.05em 0 0 #ff0080,
-            -0.05em -0.025em 0 #00ffff,
-            0.025em 0.05em 0 #00ff00;
-        }
-      `}</style>
     </div>
   );
 }

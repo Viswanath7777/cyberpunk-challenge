@@ -111,22 +111,22 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-primary/10">
       {/* Subtle background pattern */}
       <div className="fixed inset-0 opacity-5 pointer-events-none">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            linear-gradient(rgba(236, 72, 153, 0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(236, 72, 153, 0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '40px 40px'
+            radial-gradient(circle at 20% 50%, rgba(219, 39, 119, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.25) 0%, transparent 50%),
+            radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.3) 0%, transparent 50%)
+          `
         }} />
       </div>
 
       {/* Auth Content */}
       <div className="flex-1 flex items-center justify-center p-4 relative z-10">
         <div className="w-full max-w-md">
-        <Card className="w-full pb-0 border-2 shadow-2xl backdrop-blur-sm bg-card/95">
+        <Card className="w-full pb-0 border-2 border-primary/30 shadow-2xl backdrop-blur-sm bg-card/95">
           {step === "signIn" ? (
             <>
               <CardHeader className="text-center space-y-4 pt-8 pb-6">

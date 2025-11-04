@@ -238,39 +238,39 @@ export default function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-cyan-400 font-mono">
-      {/* Cyberpunk grid background */}
-      <div className="fixed inset-0 opacity-10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 text-foreground font-sans">
+      {/* Background pattern */}
+      <div className="fixed inset-0 opacity-5 pointer-events-none">
         <div className="absolute inset-0" style={{
           backgroundImage: `
-            linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px'
+            radial-gradient(circle at 20% 50%, rgba(219, 39, 119, 0.3) 0%, transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.25) 0%, transparent 50%),
+            radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.3) 0%, transparent 50%)
+          `
         }} />
       </div>
 
       {/* Header */}
-      <header className="relative border-b border-cyan-400/30 bg-black/80 backdrop-blur">
+      <header className="relative border-b border-border bg-card/80 backdrop-blur shadow-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
               onClick={() => navigate("/dashboard")}
-              className="text-cyan-400 hover:bg-cyan-400/10"
+              className="text-primary hover:bg-primary/10"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
-            <div className="text-2xl font-bold text-pink-500 glitch-text">
+            <div className="text-2xl font-bold text-primary">
               <Crown className="w-6 h-6 inline mr-2" />
-              ADMIN_PANEL
+              ADMIN PANEL
             </div>
           </div>
           
           <Button
             onClick={handleResetWeekly}
-            className="bg-yellow-400/20 border border-yellow-400 text-yellow-400 hover:bg-yellow-400/30"
+            className="bg-secondary/20 border border-secondary text-secondary hover:bg-secondary/30"
           >
             Reset Weekly & Award Badges
           </Button>
@@ -284,26 +284,26 @@ export default function Admin() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card className="bg-gray-900/50 border-cyan-400/30">
+          <Card className="bg-card/50 border-primary/30 shadow-lg">
             <CardHeader>
-              <CardTitle className="text-cyan-400 flex items-center gap-2">
+              <CardTitle className="text-primary flex items-center gap-2">
                 <Plus className="w-5 h-5" />
                 Create New Challenge
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-muted-foreground">
                 Add a new challenge for students to complete
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="title" className="text-cyan-400">Title</Label>
+                  <Label htmlFor="title" className="text-foreground">Title</Label>
                   <Input
                     id="title"
                     value={newChallenge.title}
                     onChange={(e) => setNewChallenge(prev => ({ ...prev, title: e.target.value }))}
                     placeholder="Challenge title..."
-                    className="bg-gray-800 border-gray-600 text-white"
+                    className="bg-background/50 border-border text-foreground"
                   />
                 </div>
                 <div>
@@ -362,7 +362,7 @@ export default function Admin() {
               <Button
                 onClick={handleCreateChallenge}
                 disabled={isCreating}
-                className="w-full bg-cyan-400/20 border border-cyan-400 text-cyan-400 hover:bg-cyan-400/30"
+                className="w-full bg-primary/20 border border-primary text-primary hover:bg-primary/30"
               >
                 {isCreating ? "Creating..." : "Create Challenge"}
               </Button>
@@ -792,15 +792,6 @@ export default function Admin() {
           </Card>
         </motion.div>
       </main>
-
-      <style>{`
-        .glitch-text {
-          text-shadow: 
-            0.05em 0 0 #ff0080,
-            -0.05em -0.025em 0 #00ffff,
-            0.025em 0.05em 0 #00ff00;
-        }
-      `}</style>
     </div>
   );
 }
